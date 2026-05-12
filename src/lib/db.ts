@@ -244,9 +244,9 @@ export async function setContentTags(db: D1Database, contentId: string, tagNames
   for (const name of tagNames) {
     const trimmed = name.trim()
     if (!trimmed) continue
-    const slug = trimmed.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\u4e00-\u9fa5-]/g, '')
     const existing = await db.prepare('SELECT id FROM tags WHERE name = ?').bind(trimmed).first<{ id: string }>()
     const tagId = existing?.id ?? crypto.randomUUID().replace(/-/g, '')
+    const slug = trimmed.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || tagId
     if (!existing) {
       await db.prepare('INSERT OR IGNORE INTO tags (id, name, slug) VALUES (?, ?, ?)').bind(tagId, trimmed, slug).run()
     }

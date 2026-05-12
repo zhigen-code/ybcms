@@ -13,7 +13,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const { name } = await request.json() as { name: string }
   if (!name?.trim()) return Response.json({ error: '名称不能为空' }, { status: 400 })
 
-  await updateTag(env.DB, id, { name: name.trim(), slug: slugify(name.trim()) || id })
+  const slug = slugify(name.trim()).replace(/[^\x00-\x7F]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || id
+  await updateTag(env.DB, id, { name: name.trim(), slug })
   return Response.json({ ok: true })
 }
 

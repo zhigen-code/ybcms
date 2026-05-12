@@ -13,9 +13,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const { name, description, parent_id } = await request.json() as { name?: string; description?: string; parent_id?: string | null }
   if (!name?.trim()) return Response.json({ error: '名称不能为空' }, { status: 400 })
 
+  const slug = slugify(name.trim()).replace(/[^\x00-\x7F]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || id
   await updateCategory(env.DB, id, {
     name: name.trim(),
-    slug: slugify(name.trim()) || id,
+    slug,
     description: description ?? null,
     parent_id: parent_id ?? null,
   })

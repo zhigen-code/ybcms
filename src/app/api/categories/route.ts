@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   if (!name?.trim() || !content_type) return Response.json({ error: '参数不完整' }, { status: 400 })
 
   const id = generateId()
-  const slug = slugify(name) || id
+  const slug = slugify(name).replace(/[^\x00-\x7F]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || id
   await createCategory(env.DB, { id, content_type, name: name.trim(), slug, parent_id, description })
   return Response.json({ id, name: name.trim(), slug, content_type, parent_id: parent_id ?? null }, { status: 201 })
 }

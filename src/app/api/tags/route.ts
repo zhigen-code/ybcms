@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   if (!name?.trim()) return Response.json({ error: '名称不能为空' }, { status: 400 })
 
   const id = generateId()
-  const slug = slugify(name.trim()) || id
+  const slug = slugify(name.trim()).replace(/[^\x00-\x7F]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || id
   await createTag(env.DB, { id, name: name.trim(), slug })
   return Response.json({ id, name: name.trim(), slug, count: 0 }, { status: 201 })
 }
