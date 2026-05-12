@@ -174,8 +174,20 @@ export async function generateSEOMeta(
 
 export async function generateImageAlt(
   env: CloudflareEnv,
-  imageUrl: string
+  imageBuffer: ArrayBuffer
 ): Promise<string> {
-  const prompt = `请用简洁的中文描述这张图片的内容，用于图片的alt属性，不超过100字。`
-  return generateText(env, prompt)
+  try {
+    const response = await env.AI.run(
+      '@cf/llava-hf/llava-1.5-7b-hf' as Parameters<typeof env.AI.run>[0],
+      {
+        image: [...new Uint8Array(imageBuffer)],
+        prompt: '请用简洁的中文描述这张图片的内容，用于图片的alt属性，不超过80个字。直接描述内容，不要说"这张图片"。',
+        max_tokens: 150,
+      } as Parameters<typeof env.AI.run>[1]
+    )
+    const r = response as { description?: string }
+    return r.description?.trim() ?? ''
+  } catch {
+    return ''
+  }
 }

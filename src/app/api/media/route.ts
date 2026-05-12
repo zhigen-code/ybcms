@@ -1,8 +1,9 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare'
-import { getMediaList, createMedia } from '@/lib/db'
+import { getMediaList, createMedia, updateMedia } from '@/lib/db'
 import { getCurrentUser, requireAdmin } from '@/lib/auth'
 import { uploadToR2, generateMediaKey, isAllowedMimeType } from '@/lib/r2'
 import { generateId } from '@/lib/utils'
+import { generateImageAlt } from '@/lib/ai'
 
 
 export async function GET(request: Request) {
@@ -43,6 +44,13 @@ export async function POST(request: Request) {
     ai_alt: null,
     uploaded_by: user!.userId,
   })
+
+  // 异步生成 alt（不阻塞响应）
+  if (file.type.startsWith('image/')) {
+    generateImageAlt(env, buffer).then(aiAlt => {
+      if (aiAlt) updateMedia(env.DB, id, { ai_alt: aiAlt })
+    }).catch(() => {})
+  }
 
   return Response.json({ id, url, filename: file.name }, { status: 201 })
 }

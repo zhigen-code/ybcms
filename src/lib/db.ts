@@ -56,6 +56,48 @@ function parseContentType(row: ContentType & { fields: string }): ContentType {
   }
 }
 
+export async function createContentType(
+  db: D1Database,
+  data: {
+    id: string; name: string; slug: string; icon?: string
+    has_timeline?: boolean; has_author?: boolean; has_category?: boolean
+    has_tag?: boolean; fields?: unknown[]
+  }
+): Promise<void> {
+  await db.prepare(`
+    INSERT INTO content_types (id, name, slug, icon, has_timeline, has_author, has_category, has_tag, is_builtin, fields)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+  `).bind(
+    data.id, data.name, data.slug, data.icon ?? '📄',
+    data.has_timeline ? 1 : 0, data.has_author ? 1 : 0,
+    data.has_category ? 1 : 0, data.has_tag ? 1 : 0,
+    JSON.stringify(data.fields ?? [])
+  ).run()
+}
+
+export async function updateContentType(
+  db: D1Database,
+  id: string,
+  data: Partial<{ name: string; icon: string; has_timeline: boolean; has_author: boolean; has_category: boolean; has_tag: boolean; fields: unknown[] }>
+): Promise<void> {
+  const map: Record<string, unknown> = {}
+  if (data.name !== undefined) map.name = data.name
+  if (data.icon !== undefined) map.icon = data.icon
+  if (data.has_timeline !== undefined) map.has_timeline = data.has_timeline ? 1 : 0
+  if (data.has_author !== undefined) map.has_author = data.has_author ? 1 : 0
+  if (data.has_category !== undefined) map.has_category = data.has_category ? 1 : 0
+  if (data.has_tag !== undefined) map.has_tag = data.has_tag ? 1 : 0
+  if (data.fields !== undefined) map.fields = JSON.stringify(data.fields)
+  const fields = Object.keys(map).map(k => `${k} = ?`)
+  if (!fields.length) return
+  await db.prepare(`UPDATE content_types SET ${fields.join(', ')} WHERE id = ? AND is_builtin = 0`)
+    .bind(...Object.values(map), id).run()
+}
+
+export async function deleteContentType(db: D1Database, id: string): Promise<void> {
+  await db.prepare('DELETE FROM content_types WHERE id = ? AND is_builtin = 0').bind(id).run()
+}
+
 // ── 内容 ────────────────────────────────────────────────────
 
 export async function getContents(
@@ -146,6 +188,8 @@ export async function createContent(db: D1Database, data: Omit<Content, 'created
     data.og_image, data.ai_generated ? 1 : 0, data.ai_reviewed ? 1 : 0,
     data.parent_id ?? null, data.sort_order ?? 0
   ).run()
+  await db.prepare(`INSERT INTO contents_fts(id, title, excerpt, content) VALUES (?, ?, ?, ?)`)
+    .bind(data.id, data.title, data.excerpt ?? '', data.content ?? '').run()
 }
 
 const CONTENT_EXCLUDED_KEYS = new Set(['id', 'category_id', 'author', 'categories', 'tags', 'fields', 'parent'])
@@ -161,10 +205,22 @@ export async function updateContent(db: D1Database, id: string, data: Partial<Co
   await db.prepare(
     `UPDATE contents SET ${fields.join(', ')}, updated_at = unixepoch() WHERE id = ?`
   ).bind(...values, id).run()
+
+  // 同步 FTS 索引
+  if (data.title !== undefined || data.excerpt !== undefined || data.content !== undefined) {
+    const row = await db.prepare('SELECT title, excerpt, content FROM contents WHERE id = ?')
+      .bind(id).first<{ title: string; excerpt: string | null; content: string | null }>()
+    if (row) {
+      await db.prepare(`DELETE FROM contents_fts WHERE id = ?`).bind(id).run()
+      await db.prepare(`INSERT INTO contents_fts(id, title, excerpt, content) VALUES (?, ?, ?, ?)`)
+        .bind(id, row.title, row.excerpt ?? '', row.content ?? '').run()
+    }
+  }
 }
 
 export async function deleteContent(db: D1Database, id: string): Promise<void> {
   await db.prepare('DELETE FROM contents WHERE id = ?').bind(id).run()
+  await db.prepare('DELETE FROM contents_fts WHERE id = ?').bind(id).run()
 }
 
 // ── 分类 ────────────────────────────────────────────────────
@@ -401,6 +457,20 @@ export async function createMedia(db: D1Database, data: Omit<Media, 'created_at'
     INSERT INTO media (id, filename, r2_key, url, mime_type, size, width, height, alt, ai_alt, uploaded_by)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(data.id, data.filename, data.r2_key, data.url, data.mime_type, data.size, data.width, data.height, data.alt, data.ai_alt, data.uploaded_by).run()
+}
+
+export async function updateMedia(
+  db: D1Database,
+  id: string,
+  data: Partial<Pick<Media, 'alt' | 'ai_alt' | 'width' | 'height'>>
+): Promise<void> {
+  const fields = Object.entries(data)
+    .filter(([, v]) => v !== undefined)
+    .map(([k]) => `${k} = ?`)
+  if (!fields.length) return
+  const values = Object.entries(data).filter(([, v]) => v !== undefined).map(([, v]) => v)
+  await db.prepare(`UPDATE media SET ${fields.join(', ')} WHERE id = ?`)
+    .bind(...values, id).run()
 }
 
 // ── AI 任务 ─────────────────────────────────────────────────
