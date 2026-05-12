@@ -1,10 +1,39 @@
 import { generateArticle, generateSEOMeta, generateText, DEFAULT_MODELS } from '@/lib/ai'
-import { getContents, createContent, setContentCategories } from '@/lib/db'
+import { getContents, createContent, setContentCategories, setContentTags } from '@/lib/db'
 import { getSiteSettings } from '@/lib/config'
 import { saveCoverImage, injectArticleImages } from '@/lib/image'
 import { generateId, slugify } from '@/lib/utils'
 import type { AgentResult, AgentRunOptions } from './base'
 import type { CategoryPlan } from '@/types'
+
+// 将关键词第一次出现替换为 tag 内链（跳过标题行、代码块、已有链接内）
+function injectTagLinks(content: string, tags: { name: string; slug: string }[]): string {
+  if (!tags.length) return content
+  const lines = content.split('\n')
+  const used = new Set<string>()
+  let inCode = false
+
+  return lines.map(line => {
+    if (line.startsWith('```')) { inCode = !inCode; return line }
+    if (inCode) return line
+    if (/^#{1,6}\s/.test(line)) return line  // 跳过标题
+
+    let result = line
+    for (const tag of tags) {
+      if (used.has(tag.name)) continue
+      const idx = result.indexOf(tag.name)
+      if (idx === -1) continue
+      // 确保不在已有 markdown 链接括号内
+      const before = result.slice(0, idx)
+      const openBrackets = (before.match(/\[/g) ?? []).length
+      const closeBrackets = (before.match(/\]/g) ?? []).length
+      if (openBrackets > closeBrackets) continue
+      result = result.slice(0, idx) + `[${tag.name}](/tag/${tag.slug})` + result.slice(idx + tag.name.length)
+      used.add(tag.name)
+    }
+    return result
+  }).join('\n')
+}
 
 // 默认选题提示词模板，支持变量
 const DEFAULT_TOPIC_PROMPT = `你是一个内容策略师，正在为名为"{{siteName}}"的网站规划内容。
@@ -130,6 +159,10 @@ async function runPlan(
         }
       }
 
+      // 注入 tag 内链
+      const tagLinks = seo.keywords.map(k => ({ name: k, slug: slugify(k) }))
+      const linkedContent = injectTagLinks(finalContent, tagLinks)
+
       step = '保存文章'
       const id = generateId()
       const rawSlug = slugify(article.title).replace(/[^\x00-\x7F]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '')
@@ -139,7 +172,7 @@ async function runPlan(
       await createContent(db, {
         id, type: 'post',
         title: article.title, slug,
-        content: finalContent, excerpt: article.excerpt,
+        content: linkedContent, excerpt: article.excerpt,
         status: shared.autoPublish ? 'published' : 'draft',
         author_id: null, cover_image: coverImage,
         parent_id: null, sort_order: 0,
@@ -149,9 +182,12 @@ async function runPlan(
         og_image: null, ai_generated: true, ai_reviewed: false,
       })
 
-      step = '分类关联'
+      step = '分类&标签关联'
       if (plan.categoryId) {
         await setContentCategories(db, id, [plan.categoryId])
+      }
+      if (seo.keywords.length > 0) {
+        await setContentTags(db, id, seo.keywords)
       }
 
       generated.push({ id, title: article.title, slug, status: shared.autoPublish ? 'published' : 'draft', coverGenerated, categoryId: plan.categoryId })

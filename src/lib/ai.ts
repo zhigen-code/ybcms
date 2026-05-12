@@ -96,6 +96,7 @@ export async function generateArticle(
 
   const defaultUserPrompt = `请围绕主题"{{topic}}"写一篇{{wordCount}}字左右的文章。
 {{keywords}}{{style}}{{siteTopics}}{{audience}}
+注意：正文中不要包含任何超链接或参考资料URL，不要编造网址。
 严格按以下格式输出，不要添加任何其他内容：
 
 ===TITLE===
@@ -116,7 +117,7 @@ export async function generateArticle(
     .replace('{{siteTopics}}', options.siteTopics ? `网站主题：${options.siteTopics}\n` : '')
     .replace('{{audience}}', options.targetAudience ? `目标读者：${options.targetAudience}\n` : '')
 
-  const sysPrompt = options.systemPrompt || '你是一位专业的内容创作者，擅长SEO友好的内容写作。请严格按照指定格式输出。'
+  const sysPrompt = options.systemPrompt || '你是一位专业的内容创作者，擅长SEO友好的内容写作。请严格按照指定格式输出。不要在正文中插入任何超链接或参考资料URL，不要编造网址。'
   const raw = await generateText(env, userPrompt, sysPrompt, 4096, options.model ?? DEFAULT_MODELS.content)
 
   const extract = (tag: string, next: string) => {
