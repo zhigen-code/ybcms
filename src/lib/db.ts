@@ -184,6 +184,17 @@ export async function getCategoryBySlug(db: D1Database, contentType: string, slu
   return db.prepare('SELECT * FROM categories WHERE content_type = ? AND slug = ?').bind(contentType, slug).first<Category>()
 }
 
+export async function updateCategory(db: D1Database, id: string, data: { name?: string; slug?: string; description?: string | null; parent_id?: string | null }): Promise<void> {
+  const fields = Object.keys(data).map(k => `${k} = ?`).join(', ')
+  const values = Object.values(data)
+  await db.prepare(`UPDATE categories SET ${fields} WHERE id = ?`).bind(...values, id).run()
+}
+
+export async function deleteCategory(db: D1Database, id: string): Promise<void> {
+  await db.prepare('DELETE FROM content_categories WHERE category_id = ?').bind(id).run()
+  await db.prepare('DELETE FROM categories WHERE id = ?').bind(id).run()
+}
+
 // ── 标签 ────────────────────────────────────────────────────
 
 export async function getTagsByContent(db: D1Database, contentId: string): Promise<Tag[]> {
@@ -198,6 +209,30 @@ export async function getTagsByContent(db: D1Database, contentId: string): Promi
 export async function getAllTags(db: D1Database): Promise<Tag[]> {
   const rows = await db.prepare('SELECT * FROM tags ORDER BY name').all<Tag>()
   return rows.results
+}
+
+export async function getTagsWithCount(db: D1Database): Promise<(Tag & { count: number })[]> {
+  const rows = await db.prepare(`
+    SELECT t.*, COUNT(ct.content_id) as count
+    FROM tags t LEFT JOIN content_tags ct ON ct.tag_id = t.id
+    GROUP BY t.id ORDER BY t.name
+  `).all<Tag & { count: number }>()
+  return rows.results
+}
+
+export async function createTag(db: D1Database, data: { id: string; name: string; slug: string }): Promise<void> {
+  await db.prepare('INSERT INTO tags (id, name, slug) VALUES (?, ?, ?)').bind(data.id, data.name, data.slug).run()
+}
+
+export async function updateTag(db: D1Database, id: string, data: { name?: string; slug?: string }): Promise<void> {
+  const fields = Object.keys(data).map(k => `${k} = ?`).join(', ')
+  const values = Object.values(data)
+  await db.prepare(`UPDATE tags SET ${fields} WHERE id = ?`).bind(...values, id).run()
+}
+
+export async function deleteTag(db: D1Database, id: string): Promise<void> {
+  await db.prepare('DELETE FROM content_tags WHERE tag_id = ?').bind(id).run()
+  await db.prepare('DELETE FROM tags WHERE id = ?').bind(id).run()
 }
 
 export async function getTagBySlug(db: D1Database, slug: string): Promise<Tag | null> {
