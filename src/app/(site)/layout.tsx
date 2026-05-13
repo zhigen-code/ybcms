@@ -41,56 +41,59 @@ function buildCssVars(settings: PartialSettings): string {
 }
 
 const proseStyles = `
-  .hide-scrollbar::-webkit-scrollbar { display: none; }
-
-  .prose h1,.prose h2,.prose h3,.prose h4 {
+  .prose { max-width: 100%; }
+  .prose h2,.prose h3,.prose h4 {
     font-family: var(--font-heading);
-    font-weight: 700;
-    line-height: 1.3;
-    margin: 1.75em 0 0.75em;
-    color: var(--color-text);
+    font-weight: 700; line-height: 1.3;
+    color: var(--color-text); letter-spacing: -0.02em;
   }
-  .prose h1 { font-size: 2rem; }
-  .prose h2 { font-size: 1.5rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.4em; }
-  .prose h3 { font-size: 1.25rem; }
-  .prose p { margin: 1.25em 0; }
-  .prose a { color: var(--color-primary); text-decoration: underline; text-underline-offset: 3px; }
-  .prose strong { font-weight: 700; }
+  .prose h2 { font-size: 1.5rem; margin: 2.25em 0 0.875em; border-bottom: 1px solid var(--color-border); padding-bottom: 0.5em; }
+  .prose h3 { font-size: 1.2rem; margin: 2em 0 0.75em; }
+  .prose h4 { font-size: 1.05rem; margin: 1.75em 0 0.625em; }
+  .prose p { margin: 1.35em 0; }
+  .prose a { color: var(--color-primary); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  .prose a:hover { text-decoration-thickness: 2px; }
+  .prose strong { font-weight: 700; color: var(--color-text); }
   .prose em { font-style: italic; }
   .prose blockquote {
     border-left: 3px solid var(--color-primary);
-    padding: 0.5em 1em;
-    margin: 1.5em 0;
+    padding: 0.75em 1.25em;
+    margin: 1.75em 0;
     color: var(--color-text-secondary);
-    background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+    background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg));
     border-radius: 0 var(--radius) var(--radius) 0;
+    font-style: italic;
   }
   .prose pre {
-    background: #1e1e2e;
-    color: #cdd6f4;
-    padding: 1.25em;
-    border-radius: var(--radius);
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 1.375em 1.5em;
+    border-radius: var(--radius-lg);
     overflow-x: auto;
-    font-size: 0.9em;
-    margin: 1.5em 0;
+    font-size: 0.875em;
+    margin: 1.75em 0;
+    line-height: 1.7;
+    border: 1px solid rgba(255,255,255,0.06);
   }
   .prose code {
-    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+    background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg-secondary));
     color: var(--color-primary);
-    padding: 0.15em 0.4em;
-    border-radius: 4px;
+    padding: 0.15em 0.45em;
+    border-radius: 5px;
     font-size: 0.875em;
+    border: 1px solid color-mix(in srgb, var(--color-primary) 15%, var(--color-border));
   }
-  .prose pre code { background: none; color: inherit; padding: 0; }
-  .prose ul,.prose ol { padding-left: 1.75em; margin: 1.25em 0; }
-  .prose li { margin: 0.4em 0; line-height: 1.7; }
+  .prose pre code { background: none; color: inherit; padding: 0; border: none; font-size: 1em; }
+  .prose ul,.prose ol { padding-left: 1.75em; margin: 1.35em 0; }
+  .prose li { margin: 0.5em 0; line-height: 1.75; }
   .prose ul li { list-style-type: disc; }
   .prose ol li { list-style-type: decimal; }
-  .prose hr { border: none; border-top: 1px solid var(--color-border); margin: 2em 0; }
-  .prose img { max-width: 100%; border-radius: var(--radius); margin: 1.5em 0; }
-  .prose table { width: 100%; border-collapse: collapse; margin: 1.5em 0; font-size: 0.9em; }
-  .prose th,.prose td { border: 1px solid var(--color-border); padding: 0.5em 0.75em; }
-  .prose th { background: color-mix(in srgb, var(--color-primary) 8%, transparent); font-weight: 600; }
+  .prose hr { border: none; border-top: 1px solid var(--color-border); margin: 2.5em 0; }
+  .prose img { max-width: 100%; border-radius: var(--radius-lg); margin: 2em auto; box-shadow: var(--shadow-md); }
+  .prose table { width: 100%; border-collapse: collapse; margin: 1.75em 0; font-size: 0.9em; }
+  .prose th,.prose td { border: 1px solid var(--color-border); padding: 0.625em 0.875em; text-align: left; }
+  .prose th { background: var(--color-bg-secondary); font-weight: 600; color: var(--color-text); }
+  .prose tr:nth-child(even) td { background: var(--color-bg-secondary); }
 `
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {

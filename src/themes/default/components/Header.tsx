@@ -17,48 +17,90 @@ export default function Header({ settings }: Props) {
   const pathname = usePathname()
 
   useEffect(() => { setOpen(false) }, [pathname])
-
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 12)
+    const fn = () => setScrolled(window.scrollY > 8)
     window.addEventListener('scroll', fn, { passive: true })
+    fn()
     return () => window.removeEventListener('scroll', fn)
   }, [])
 
   return (
     <>
-      <header style={{
-        position: 'sticky', top: 0, zIndex: 40,
-        background: scrolled ? 'var(--color-bg)' : 'transparent',
-        borderBottom: scrolled ? '1px solid var(--color-border)' : '1px solid transparent',
-        backdropFilter: scrolled ? 'blur(12px)' : 'none',
-        transition: 'all 0.2s',
-      }}>
-        <div style={{ maxWidth: 'var(--max-width)', margin: '0 auto', padding: '0 1.5rem', display: 'flex', alignItems: 'center', height: '60px', gap: '2rem' }}>
+      <style>{`
+        .site-header {
+          position: sticky; top: 0; z-index: 50;
+          transition: background 0.2s, box-shadow 0.2s, border-color 0.2s;
+        }
+        .site-header.scrolled {
+          background: rgba(255,255,255,0.92);
+          backdrop-filter: blur(16px) saturate(180%);
+          -webkit-backdrop-filter: blur(16px) saturate(180%);
+          border-bottom: 1px solid var(--color-border);
+          box-shadow: 0 1px 0 rgba(15,23,42,0.04);
+        }
+        @media(prefers-color-scheme:dark){
+          .site-header.scrolled { background: rgba(15,23,42,0.92); }
+        }
+        .site-header:not(.scrolled) {
+          background: transparent;
+          border-bottom: 1px solid transparent;
+        }
+        .nav-link {
+          padding: 0.375rem 0.75rem; border-radius: 6px;
+          font-size: 0.875rem; font-weight: 500;
+          color: var(--color-text-secondary); text-decoration: none;
+          transition: color 0.15s, background 0.15s;
+          white-space: nowrap;
+        }
+        .nav-link:hover { color: var(--color-text); background: var(--color-bg-secondary); }
+        .header-icon-btn {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 36px; height: 36px; border-radius: 8px;
+          color: var(--color-text-secondary); text-decoration: none;
+          transition: color 0.15s, background 0.15s; border: none;
+          background: none; cursor: pointer;
+        }
+        .header-icon-btn:hover { color: var(--color-text); background: var(--color-bg-secondary); }
+        .header-admin-btn {
+          font-size: 0.8rem; font-weight: 500;
+          color: var(--color-text-secondary); text-decoration: none;
+          padding: 0.375rem 0.875rem;
+          border: 1px solid var(--color-border); border-radius: 7px;
+          transition: all 0.15s; white-space: nowrap;
+        }
+        .header-admin-btn:hover { color: var(--color-text); border-color: var(--color-text-secondary); background: var(--color-bg-secondary); }
+        @media(max-width:767px){
+          .header-desktop-nav, .header-admin-btn { display: none !important; }
+        }
+        @media(min-width:768px){
+          .header-hamburger { display: none !important; }
+        }
+      `}</style>
+
+      <header className={`site-header${scrolled ? ' scrolled' : ''}`}>
+        <div style={{
+          maxWidth: 'var(--max-width)', margin: '0 auto',
+          padding: '0 1.5rem',
+          display: 'flex', alignItems: 'center',
+          height: '64px', gap: '1rem',
+        }}>
           {/* Logo */}
-          <Link href="/" style={{ textDecoration: 'none', flexShrink: 0 }}>
+          <Link href="/" style={{ textDecoration: 'none', flexShrink: 0, marginRight: '0.5rem' }}>
             {logo
               ? <img src={logo} alt={siteName} style={{ height: '28px', width: 'auto' }} />
-              : <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.15rem', color: 'var(--color-text)', letterSpacing: '-0.03em' }}>{siteName}</span>
+              : <span style={{
+                  fontFamily: 'var(--font-heading)', fontWeight: 800,
+                  fontSize: '1.2rem', color: 'var(--color-text)',
+                  letterSpacing: '-0.04em',
+                }}>{siteName}</span>
             }
           </Link>
 
           {/* Desktop nav */}
           {navItems.length > 0 && (
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '0.125rem' }} className="header-desktop-nav">
+            <nav className="header-desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
               {navItems.map(item => (
-                <Link
-                  key={item.id}
-                  href={item.url}
-                  target={item.target}
-                  style={{
-                    padding: '0.375rem 0.75rem', borderRadius: '6px',
-                    fontSize: '0.875rem', color: 'var(--color-text-secondary)',
-                    textDecoration: 'none', transition: 'color 0.15s, background 0.15s',
-                    fontWeight: 500,
-                  }}
-                  onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = 'var(--color-text)'; el.style.background = 'var(--color-bg-secondary)' }}
-                  onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = 'var(--color-text-secondary)'; el.style.background = 'transparent' }}
-                >
+                <Link key={item.id} href={item.url} target={item.target} className="nav-link">
                   {item.label}
                 </Link>
               ))}
@@ -67,107 +109,71 @@ export default function Header({ settings }: Props) {
 
           <div style={{ flex: 1 }} />
 
-
-          {/* Search icon */}
-          <Link href="/search" style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: '36px', height: '36px', borderRadius: '8px',
-            color: 'var(--color-text-secondary)', textDecoration: 'none',
-            transition: 'color 0.15s, background 0.15s',
-          }}
-            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = 'var(--color-text)'; el.style.background = 'var(--color-bg-secondary)' }}
-            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = 'var(--color-text-secondary)'; el.style.background = 'transparent' }}
-            title="搜索"
-          >
+          {/* Search */}
+          <Link href="/search" className="header-icon-btn" title="搜索">
             <SearchIcon size={18} />
           </Link>
 
-          {/* Desktop admin link */}
-          <Link href="/admin" style={{
-            fontSize: '0.8rem', color: 'var(--color-text-secondary)',
-            textDecoration: 'none', padding: '0.375rem 0.75rem',
-            border: '1px solid var(--color-border)', borderRadius: '6px',
-            transition: 'all 0.15s', display: 'none',
-          }} className="header-admin-link">
-            管理
-          </Link>
+          {/* Admin (desktop) */}
+          <Link href="/admin" className="header-admin-btn">后台</Link>
 
-          {/* Mobile hamburger */}
-          <button
-            onClick={() => setOpen(o => !o)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: '0.375rem', color: 'var(--color-text)',
-              lineHeight: 0, display: 'flex', alignItems: 'center',
-            }}
-            className="header-menu-btn"
-          >
-            {open ? <XIcon size={22} /> : <MenuIcon size={22} />}
+          {/* Hamburger (mobile) */}
+          <button onClick={() => setOpen(o => !o)} className="header-icon-btn header-hamburger" aria-label="菜单">
+            {open ? <XIcon size={20} /> : <MenuIcon size={20} />}
           </button>
         </div>
-        <style>{`
-          @media(min-width:768px){
-            .header-menu-btn{display:none!important}
-            .header-admin-link{display:flex!important;align-items:center}
-            .header-desktop-nav{display:flex!important}
-          }
-          @media(max-width:767px){
-            .header-desktop-nav{display:none!important}
-          }
-        `}</style>
       </header>
 
-      {/* Mobile menu overlay */}
+      {/* Mobile menu */}
       {open && (
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 39,
+          position: 'fixed', inset: 0, zIndex: 49,
           background: 'var(--color-bg)',
           display: 'flex', flexDirection: 'column',
         }}>
-          {/* Overlay top bar */}
           <div style={{
-            height: '60px', flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '0 1.5rem',
-            borderBottom: '1px solid var(--color-border)',
+            height: '64px', display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between', padding: '0 1.5rem',
+            borderBottom: '1px solid var(--color-border)', flexShrink: 0,
           }}>
             <Link href="/" onClick={() => setOpen(false)} style={{ textDecoration: 'none' }}>
               {logo
                 ? <img src={logo} alt={siteName} style={{ height: '28px', width: 'auto' }} />
-                : <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.15rem', color: 'var(--color-text)', letterSpacing: '-0.03em' }}>{siteName}</span>
+                : <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.2rem', color: 'var(--color-text)', letterSpacing: '-0.04em' }}>{siteName}</span>
               }
             </Link>
-            <button
-              onClick={() => setOpen(false)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.375rem', color: 'var(--color-text)', lineHeight: 0 }}
-            >
-              <XIcon size={22} />
+            <button onClick={() => setOpen(false)} className="header-icon-btn">
+              <XIcon size={20} />
             </button>
           </div>
-          {/* Scrollable nav */}
-          <nav style={{ flex: 1, overflowY: 'auto', padding: '0.5rem 1.5rem 2rem' }}>
+          <nav style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 1.5rem 3rem' }}>
+            <Link href="/" onClick={() => setOpen(false)} style={{
+              display: 'flex', alignItems: 'center', padding: '0.875rem 0',
+              fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text)',
+              textDecoration: 'none', borderBottom: '1px solid var(--color-border)',
+            }}>首页</Link>
             {navItems.map(item => (
-              <Link
-                key={item.id}
-                href={item.url}
-                target={item.target}
-                style={{
-                  display: 'flex', alignItems: 'center', padding: '1rem 0',
-                  fontSize: '1.2rem', fontWeight: 600,
-                  color: 'var(--color-text)', textDecoration: 'none',
-                  borderBottom: '1px solid var(--color-border)',
-                }}
-              >
-                {item.label}
-              </Link>
+              <Link key={item.id} href={item.url} target={item.target} onClick={() => setOpen(false)} style={{
+                display: 'flex', alignItems: 'center', padding: '0.875rem 0',
+                fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text)',
+                textDecoration: 'none', borderBottom: '1px solid var(--color-border)',
+              }}>{item.label}</Link>
             ))}
-            <Link href="/admin" style={{
-              display: 'flex', alignItems: 'center', padding: '1rem 0',
-              fontSize: '0.95rem', color: 'var(--color-text-secondary)',
-              textDecoration: 'none',
+            <Link href="/search" onClick={() => setOpen(false)} style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+              padding: '0.875rem 0', fontSize: '1rem',
+              color: 'var(--color-text-secondary)', textDecoration: 'none',
+              borderBottom: '1px solid var(--color-border)',
             }}>
-              管理后台
+              <SearchIcon size={16} />搜索
             </Link>
+            <Link href="/admin" style={{
+              display: 'inline-flex', alignItems: 'center', marginTop: '1.5rem',
+              padding: '0.625rem 1.25rem', borderRadius: '8px',
+              border: '1px solid var(--color-border)',
+              fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-secondary)',
+              textDecoration: 'none',
+            }}>管理后台</Link>
           </nav>
         </div>
       )}

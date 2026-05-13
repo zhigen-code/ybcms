@@ -24,80 +24,37 @@ export default function DefaultHome({ posts, settings, categories = [], category
 
   return (
     <main>
-      {/* Hero — compact when posts exist */}
-      <section style={{
-        padding: posts.length > 0
-          ? 'clamp(2.5rem, 6vw, 4rem) 1.5rem clamp(2rem, 5vw, 3rem)'
-          : 'clamp(4rem, 10vw, 7rem) 1.5rem',
-        textAlign: 'center',
-        borderBottom: '1px solid var(--color-border)',
-        background: 'var(--color-bg)',
-      }}>
-        <div style={{ maxWidth: '680px', margin: '0 auto' }}>
-          <h1 style={{
-            fontFamily: 'var(--font-heading)',
-            fontSize: posts.length > 0
-              ? 'clamp(1.75rem, 5vw, 2.75rem)'
-              : 'clamp(2.25rem, 6vw, 4rem)',
-            fontWeight: 900, lineHeight: 1.1,
-            letterSpacing: '-0.03em',
-            color: 'var(--color-text)',
-            marginBottom: siteDesc ? '0.875rem' : 0,
-          }}>
-            {siteName}
-          </h1>
-          {siteDesc && (
-            <p style={{
-              fontSize: posts.length > 0 ? '1rem' : 'clamp(1rem, 2.5vw, 1.2rem)',
-              color: 'var(--color-text-secondary)',
-              lineHeight: 1.7,
-            }}>
-              {siteDesc}
-            </p>
-          )}
-        </div>
+      <style>{`
+        .home-hero { padding: clamp(3rem,8vw,5.5rem) 1.5rem clamp(2.5rem,6vw,4rem); text-align:center; background:var(--color-bg); border-bottom:1px solid var(--color-border); }
+        .home-hero h1 { font-family:var(--font-heading); font-size:clamp(2rem,6vw,3.5rem); font-weight:900; letter-spacing:-0.04em; line-height:1.1; color:var(--color-text); margin-bottom:0.875rem; }
+        .home-hero p { font-size:clamp(1rem,2.5vw,1.125rem); color:var(--color-text-secondary); line-height:1.75; max-width:560px; margin:0 auto; }
+        .cat-bar { border-bottom:1px solid var(--color-border); background:var(--color-bg); position:sticky; top:64px; z-index:10; }
+        .cat-bar-inner { max-width:var(--max-width); margin:0 auto; padding:0 1.5rem; overflow-x:auto; display:flex; align-items:center; }
+        .cat-link { display:inline-flex; align-items:center; padding:0.875rem 1rem; font-size:0.875rem; font-weight:500; color:var(--color-text-secondary); text-decoration:none; white-space:nowrap; flex-shrink:0; border-bottom:2px solid transparent; transition:color 0.15s, border-color 0.15s; }
+        .cat-link:hover { color:var(--color-text); }
+        .cat-link.active { color:var(--color-text); border-bottom-color:var(--color-primary); font-weight:600; }
+        .home-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem; }
+        @media(max-width:1024px){ .home-grid { grid-template-columns:repeat(2,1fr); } }
+        @media(max-width:600px){ .home-grid { grid-template-columns:1fr; gap:1.25rem; } }
+        .section-heading { display:flex; align-items:center; gap:1rem; margin-bottom:2rem; }
+        .section-heading h2 { font-family:var(--font-heading); font-size:1.125rem; font-weight:800; color:var(--color-text); letter-spacing:-0.02em; white-space:nowrap; }
+        .section-heading-line { flex:1; height:1px; background:var(--color-border); }
+        .section-heading-count { font-size:0.8rem; color:var(--color-text-muted); white-space:nowrap; }
+      `}</style>
+
+      {/* Hero */}
+      <section className="home-hero">
+        <h1>{siteName}</h1>
+        {siteDesc && <p>{siteDesc}</p>}
       </section>
 
-      {/* Category filter nav */}
+      {/* Category tabs */}
       {categories.length > 0 && (
-        <div style={{
-          borderBottom: '1px solid var(--color-border)',
-          background: 'var(--color-bg)',
-          position: 'sticky', top: '60px', zIndex: 10,
-        }}>
-          <div style={{
-            maxWidth: 'var(--max-width)', margin: '0 auto',
-            padding: '0 1.5rem',
-            overflowX: 'auto',
-            display: 'flex', alignItems: 'center', gap: '0.25rem',
-            scrollbarWidth: 'none', msOverflowStyle: 'none',
-          } as React.CSSProperties}
-            // hide webkit scrollbar via inline class
-            className="hide-scrollbar"
-          >
-            <Link href="/" style={{
-              display: 'inline-flex', alignItems: 'center',
-              padding: '0.75rem 1rem',
-              fontSize: '0.875rem', fontWeight: 600,
-              color: 'var(--color-text)',
-              textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0,
-              borderBottom: '2px solid var(--color-text)',
-            }}>
-              全部
-            </Link>
+        <div className="cat-bar">
+          <div className="cat-bar-inner hide-scrollbar">
+            <Link href="/" className="cat-link active">全部</Link>
             {categories.map(cat => (
-              <Link key={cat.id} href={`/category/${cat.slug}`} style={{
-                display: 'inline-flex', alignItems: 'center',
-                padding: '0.75rem 1rem',
-                fontSize: '0.875rem', fontWeight: 400,
-                color: 'var(--color-text-secondary)',
-                textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0,
-                borderBottom: '2px solid transparent',
-                transition: 'color 0.15s',
-              }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--color-text)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)' }}
-              >
+              <Link key={cat.id} href={`/category/${cat.slug}`} className="cat-link">
                 {cat.name}
               </Link>
             ))}
@@ -105,49 +62,37 @@ export default function DefaultHome({ posts, settings, categories = [], category
         </div>
       )}
 
-      <div style={{ maxWidth: 'var(--max-width)', margin: '0 auto', padding: '3.5rem 1.5rem 5rem' }}>
+      <div style={{ maxWidth: 'var(--max-width)', margin: '0 auto', padding: 'clamp(2.5rem,6vw,4rem) 1.5rem clamp(4rem,8vw,6rem)' }}>
         {posts.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '6rem 0', color: 'var(--color-text-secondary)' }}>
-            <p style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--color-text)', marginBottom: '0.5rem' }}>暂无内容</p>
-            <p style={{ fontSize: '0.875rem', marginBottom: '1.5rem' }}>还没有发布任何文章</p>
+            <div style={{ fontSize: '3rem', marginBottom: '1.25rem', opacity: 0.3 }}>✦</div>
+            <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text)', marginBottom: '0.5rem' }}>暂无内容</p>
+            <p style={{ fontSize: '0.875rem', marginBottom: '2rem' }}>还没有发布任何文章</p>
             <Link href="/admin" style={{
               display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-              padding: '0.6rem 1.25rem',
-              fontSize: '0.875rem', fontWeight: 500,
+              padding: '0.625rem 1.375rem', fontSize: '0.875rem', fontWeight: 500,
               border: '1px solid var(--color-border)', borderRadius: '8px',
               color: 'var(--color-text)', textDecoration: 'none',
-              transition: 'background 0.15s',
-            }}>
-              前往后台发布 →
-            </Link>
+            }}>前往后台发布</Link>
           </div>
         ) : (
           <>
-            {/* Featured post */}
+            {/* Featured */}
             {featured && (
-              <section style={{ marginBottom: '4rem' }}>
+              <section style={{ marginBottom: 'clamp(3rem,6vw,4.5rem)' }}>
                 <PostCard post={featured} featured category={categoryMap[featured.categories?.[0]?.id ?? '']} />
               </section>
             )}
 
-            {/* Rest of posts */}
+            {/* Recent posts grid */}
             {rest.length > 0 && (
               <section>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                  <h2 style={{
-                    fontFamily: 'var(--font-heading)', fontSize: '1rem', fontWeight: 700,
-                    color: 'var(--color-text)', letterSpacing: '-0.01em', whiteSpace: 'nowrap',
-                  }}>最新文章</h2>
-                  <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
-                  <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
-                    共 {pagination?.total ?? rest.length + 1} 篇
-                  </span>
+                <div className="section-heading">
+                  <h2>最新文章</h2>
+                  <div className="section-heading-line" />
+                  <span className="section-heading-count">共 {pagination?.total ?? rest.length + 1} 篇</span>
                 </div>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))',
-                  gap: '1.5rem',
-                }}>
+                <div className="home-grid">
                   {rest.map(post => (
                     <PostCard key={post.id} post={post} category={categoryMap[post.categories?.[0]?.id ?? '']} />
                   ))}

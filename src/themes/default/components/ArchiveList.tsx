@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import type { Content, Category, Tag } from '@/types'
 import PostCard from './PostCard'
-import { ArrowLeftIcon } from '@/components/icons'
 import PaginationNav from '@/components/PaginationNav'
 
 interface Pagination { page: number; totalPages: number; total: number; pageSize: number }
@@ -19,91 +18,41 @@ interface Props {
 }
 
 export default function ArchiveList({ title, slug, description, posts, type, pagination, siblings = [] }: Props) {
+  const prefix = type === 'tag' ? '#' : ''
+
   return (
     <main style={{ minHeight: '80vh' }}>
-      {/* Archive header */}
-      <div style={{
-        borderBottom: '1px solid var(--color-border)',
-        background: 'var(--color-bg)',
-      }}>
-        <div style={{
-          maxWidth: 'var(--max-width)', margin: '0 auto',
-          padding: 'clamp(2.5rem, 6vw, 4rem) 1.5rem 0',
-        }}>
-          <Link href="/" style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-            fontSize: '0.8rem', color: 'var(--color-text-secondary)',
-            textDecoration: 'none', marginBottom: '1.5rem',
-            transition: 'color 0.15s',
-          }}
-            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'var(--color-text)')}
-            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)')}
-          >
-            <ArrowLeftIcon size={13} />
-            返回首页
-          </Link>
+      <style>{`
+        .archive-header { border-bottom:1px solid var(--color-border); background:var(--color-bg); }
+        .archive-header-inner { max-width:var(--max-width); margin:0 auto; padding:clamp(2.5rem,6vw,4rem) 1.5rem 0; }
+        .archive-label { font-size:0.7rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--color-text-secondary); margin-bottom:0.5rem; }
+        .archive-title { font-family:var(--font-heading); font-size:clamp(1.75rem,5vw,2.75rem); font-weight:900; letter-spacing:-0.03em; color:var(--color-text); line-height:1.15; }
+        .archive-desc { font-size:0.9375rem; color:var(--color-text-secondary); line-height:1.75; max-width:560px; margin-top:0.75rem; }
+        .archive-count { font-size:0.8rem; color:var(--color-text-muted); margin-top:0.5rem; }
+        .archive-sibling-bar { max-width:var(--max-width); margin:0 auto; padding:0 1.5rem; overflow-x:auto; display:flex; align-items:center; }
+        .sibling-link { display:inline-flex; align-items:center; padding:0.875rem 1rem; font-size:0.875rem; font-weight:500; color:var(--color-text-secondary); text-decoration:none; white-space:nowrap; flex-shrink:0; border-bottom:2px solid transparent; transition:color 0.15s, border-color 0.15s; }
+        .sibling-link:hover { color:var(--color-text); }
+        .sibling-link.active { color:var(--color-text); border-bottom-color:var(--color-primary); font-weight:600; }
+        .archive-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem; }
+        @media(max-width:1024px){ .archive-grid{grid-template-columns:repeat(2,1fr)} }
+        @media(max-width:600px){ .archive-grid{grid-template-columns:1fr; gap:1.25rem} }
+      `}</style>
 
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-            <span style={{
-              fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.08em',
-              textTransform: 'uppercase', color: 'var(--color-text-secondary)',
-            }}>
-              {type === 'category' ? '分类' : '标签'}
-            </span>
-            <h1 style={{
-              fontFamily: 'var(--font-heading)',
-              fontSize: 'clamp(1.75rem, 5vw, 2.75rem)',
-              fontWeight: 900, lineHeight: 1.15,
-              letterSpacing: '-0.03em',
-              color: 'var(--color-text)',
-            }}>
-              {type === 'tag' ? '#' : ''}{title}
-            </h1>
-          </div>
-
-          {description && (
-            <p style={{
-              fontSize: '1rem', color: 'var(--color-text-secondary)',
-              lineHeight: 1.7, maxWidth: '560px', marginBottom: '0.5rem',
-            }}>
-              {description}
-            </p>
-          )}
-
-          <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', opacity: 0.5, marginBottom: '1.25rem' }}>
-            {pagination.total} 篇文章
-          </p>
+      <div className="archive-header">
+        <div className="archive-header-inner">
+          <p className="archive-label">{type === 'category' ? '分类' : '标签'}</p>
+          <h1 className="archive-title">{prefix}{title}</h1>
+          {description && <p className="archive-desc">{description}</p>}
+          <p className="archive-count">{pagination.total} 篇文章</p>
         </div>
 
-        {/* Sibling nav (category switcher or tag cloud) */}
         {siblings.length > 0 && (
-          <div style={{
-            maxWidth: 'var(--max-width)', margin: '0 auto',
-            padding: '0 1.5rem',
-            overflowX: 'auto', display: 'flex', alignItems: 'center', gap: '0.25rem',
-            scrollbarWidth: 'none', msOverflowStyle: 'none',
-          } as React.CSSProperties}
-            className="hide-scrollbar"
-          >
+          <div className="archive-sibling-bar hide-scrollbar">
             {siblings.map(s => {
               const active = s.slug === slug
-              const href = type === 'category'
-                ? `/category/${s.slug}`
-                : `/tag/${s.slug}`
+              const href = type === 'category' ? `/category/${s.slug}` : `/tag/${s.slug}`
               return (
-                <Link
-                  key={s.id}
-                  href={href}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center',
-                    padding: '0.75rem 1rem',
-                    fontSize: '0.875rem', fontWeight: active ? 600 : 400,
-                    color: active ? 'var(--color-text)' : 'var(--color-text-secondary)',
-                    textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0,
-                    borderBottom: active ? '2px solid var(--color-text)' : '2px solid transparent',
-                    transition: 'color 0.15s',
-                  }}
-                >
+                <Link key={s.id} href={href} className={`sibling-link${active ? ' active' : ''}`}>
                   {type === 'tag' ? '#' : ''}{s.name}
                 </Link>
               )
@@ -112,19 +61,14 @@ export default function ArchiveList({ title, slug, description, posts, type, pag
         )}
       </div>
 
-      {/* Post grid */}
-      <div style={{ maxWidth: 'var(--max-width)', margin: '0 auto', padding: '3rem 1.5rem 5rem' }}>
+      <div style={{ maxWidth: 'var(--max-width)', margin: '0 auto', padding: 'clamp(2.5rem,6vw,4rem) 1.5rem clamp(4rem,8vw,6rem)' }}>
         {posts.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '5rem 0', color: 'var(--color-text-secondary)' }}>
             <p style={{ fontSize: '0.875rem' }}>暂无文章</p>
           </div>
         ) : (
           <>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))',
-              gap: '1.5rem',
-            }}>
+            <div className="archive-grid">
               {posts.map(post => <PostCard key={post.id} post={post} />)}
             </div>
             <PaginationNav
