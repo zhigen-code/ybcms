@@ -1,5 +1,5 @@
 import { generateArticle, generateSEOMeta, generateText, DEFAULT_MODELS } from '@/lib/ai'
-import { getContents, createContent, setContentCategories, setContentTags } from '@/lib/db'
+import { getContents, createContent, setContentCategories, setContentTags, ensureTagsAndGetSlugs } from '@/lib/db'
 import { getSiteSettings } from '@/lib/config'
 import { saveCoverImage, injectArticleImages } from '@/lib/image'
 import { generateId, slugify } from '@/lib/utils'
@@ -159,8 +159,12 @@ async function runPlan(
         }
       }
 
-      // 注入 tag 内链
-      const tagLinks = seo.keywords.map(k => ({ name: k, slug: slugify(k) }))
+      // 先确保 tags 存在并拿到真实 slug，再注入内链
+      step = 'Tag 准备'
+      let tagLinks: { name: string; slug: string }[] = []
+      if (seo.keywords.length > 0) {
+        tagLinks = await ensureTagsAndGetSlugs(db, seo.keywords)
+      }
       const linkedContent = injectTagLinks(finalContent, tagLinks)
 
       step = '保存文章'
@@ -186,7 +190,8 @@ async function runPlan(
       if (plan.categoryId) {
         await setContentCategories(db, id, [plan.categoryId])
       }
-      if (seo.keywords.length > 0) {
+      if (tagLinks.length > 0) {
+        // tags 已由 ensureTagsAndGetSlugs 创建，直接关联
         await setContentTags(db, id, seo.keywords)
       }
 

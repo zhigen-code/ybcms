@@ -295,6 +295,27 @@ export async function getTagBySlug(db: D1Database, slug: string): Promise<Tag | 
   return db.prepare('SELECT * FROM tags WHERE slug = ?').bind(slug).first<Tag>()
 }
 
+export async function ensureTagsAndGetSlugs(
+  db: D1Database,
+  tagNames: string[]
+): Promise<{ name: string; slug: string }[]> {
+  const result: { name: string; slug: string }[] = []
+  for (const name of tagNames) {
+    const trimmed = name.trim()
+    if (!trimmed) continue
+    const existing = await db.prepare('SELECT id, slug FROM tags WHERE name = ?').bind(trimmed).first<{ id: string; slug: string }>()
+    if (existing) {
+      result.push({ name: trimmed, slug: existing.slug })
+    } else {
+      const tagId = crypto.randomUUID().replace(/-/g, '')
+      const slug = trimmed.toLowerCase().replace(/\s+/g, '-').replace(/[^\x00-\x7F]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || tagId
+      await db.prepare('INSERT OR IGNORE INTO tags (id, name, slug) VALUES (?, ?, ?)').bind(tagId, trimmed, slug).run()
+      result.push({ name: trimmed, slug })
+    }
+  }
+  return result
+}
+
 export async function setContentTags(db: D1Database, contentId: string, tagNames: string[]): Promise<void> {
   await db.prepare('DELETE FROM content_tags WHERE content_id = ?').bind(contentId).run()
   for (const name of tagNames) {
@@ -302,7 +323,7 @@ export async function setContentTags(db: D1Database, contentId: string, tagNames
     if (!trimmed) continue
     const existing = await db.prepare('SELECT id FROM tags WHERE name = ?').bind(trimmed).first<{ id: string }>()
     const tagId = existing?.id ?? crypto.randomUUID().replace(/-/g, '')
-    const slug = trimmed.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || tagId
+    const slug = trimmed.toLowerCase().replace(/\s+/g, '-').replace(/[^\x00-\x7F]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || tagId
     if (!existing) {
       await db.prepare('INSERT OR IGNORE INTO tags (id, name, slug) VALUES (?, ?, ?)').bind(tagId, trimmed, slug).run()
     }
