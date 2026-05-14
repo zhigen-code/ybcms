@@ -127,11 +127,13 @@ export async function injectArticleImages(
   maxImages = 2,
   genericFallback = 'nature'
 ): Promise<{ content: string; errors: { heading: string; error: string }[] }> {
-  const h2Regex = /^(## .+)$/gm
-  const matches = [...content.matchAll(h2Regex)]
+  const headingRegex = /^(#{2,3} .+)$/gm
+  const matches = [...content.matchAll(headingRegex)]
   if (matches.length === 0) return { content, errors: [] }
 
-  const targets = matches.slice(0, maxImages)
+  // Skip the first heading (usually intro) to avoid leading with an image
+  const candidates = matches.length > 1 ? matches.slice(1) : matches
+  const targets = candidates.slice(0, maxImages)
   let result = content
   const errors: { heading: string; error: string }[] = []
 

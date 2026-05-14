@@ -19,6 +19,7 @@ import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { runAgent } from '@/lib/agents'
 import type { AgentType } from '@/lib/agents'
 import { z } from 'zod'
+import { listUsers } from '@/lib/db'
 
 
 const schema = z.object({
@@ -39,10 +40,15 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(body)
   const agents = parsed.success ? parsed.data.agents : ['content', 'seo']
 
+  // Use first admin user as author for cron-triggered content
+  const users = await listUsers(env.DB)
+  const adminUser = users.find(u => u.role === 'admin')
+  const userId = adminUser?.id
+
   const results: Record<string, unknown> = {}
   for (const agent of agents) {
     try {
-      const { taskId, result } = await runAgent(agent as AgentType, env)
+      const { taskId, result } = await runAgent(agent as AgentType, env, userId)
       results[agent] = { taskId, ...result }
     } catch (err) {
       results[agent] = { success: false, error: String(err) }
