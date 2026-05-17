@@ -1,0 +1,124 @@
+name: 🚀 Setup (Run Once)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup:
+    name: Create Cloudflare resources & deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 项目名优先用 Secret CMS_PROJECT_NAME，否则用仓库名
+      - name: Set project name
+        run: |
+          RAW="${{ secrets.CMS_PROJECT_NAME || github.event.repository.name }}"
+          PROJECT="${RAW,,}"          # 转小写
+          echo "PROJECT_NAME=$PROJECT" >> $GITHUB_ENV
+          echo "DB_NAME=$PROJECT-db" >> $GITHUB_ENV
+          echo "BUCKET_NAME=$PROJECT-media" >> $GITHUB_ENV
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Create D1 database
+        run: |
+          DB_LIST=$(npx wrangler d1 list --json)
+          DB_ID=$(echo "$DB_LIST" | jq -r --arg name "$DB_NAME" '.[] | select(.name==$name) | .uuid')
+          if [ -z "$DB_ID" ]; then
+            echo "Creating D1 database: $DB_NAME"
+            DB_OUTPUT=$(npx wrangler d1 create "$DB_NAME" --json)
+            DB_ID=$(echo "$DB_OUTPUT" | jq -r '.uuid')
+          else
+            echo "D1 database already exists: $DB_NAME ($DB_ID)"
+          fi
+          echo "DB_ID=$DB_ID" >> $GITHUB_ENV
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Create R2 bucket
+        run: |
+          npx wrangler r2 bucket create "$BUCKET_NAME" \
+            && echo "R2 bucket created: $BUCKET_NAME" \
+            || echo "R2 bucket may already exist, continuing..."
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Patch wrangler.toml
+        run: |
+          sed -i "s/YOUR_D1_DATABASE_ID/$DB_ID/" wrangler.toml
+          sed -i "s/database_name = \"cms-db\"/database_name = \"$DB_NAME\"/" wrangler.toml
+          sed -i "s/bucket_name = \"cms-media\"/bucket_name = \"$BUCKET_NAME\"/" wrangler.toml
+          sed -i "s|http://localhost:3000|https://$PROJECT_NAME.pages.dev|" wrangler.toml
+
+      - name: Run database migrations
+        run: |
+          for f in $(ls migrations/*.sql | sort); do
+            VERSION=$(basename "$f" | grep -o '^[0-9]*' | sed 's/^0*//')
+            echo "Checking migration $VERSION: $(basename $f)"
+            APPLIED=$(npx wrangler d1 execute "$DB_NAME" --remote \
+              --command "SELECT COUNT(*) as c FROM migrations WHERE version = $VERSION" \
+              --json 2>/dev/null | jq -r '.[0].results[0].c // 0' 2>/dev/null || echo "0")
+            if [ "$APPLIED" = "0" ]; then
+              echo "→ Applying: $(basename $f)"
+              npx wrangler d1 execute "$DB_NAME" --remote --file="$f"
+            else
+              echo "→ Already applied, skipping"
+            fi
+          done
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Create Cloudflare Pages project
+        run: |
+          npx wrangler pages project create "$PROJECT_NAME" --production-branch main \
+            && echo "Pages project created: $PROJECT_NAME" \
+            || echo "Pages project may already exist, continuing..."
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Set JWT_SECRET
+        run: |
+          JWT_SECRET=$(openssl rand -hex 32)
+          echo "$JWT_SECRET" | npx wrangler pages secret put JWT_SECRET \
+            --project-name="$PROJECT_NAME"
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Build
+        run: npm run build:pages
+        env:
+          NEXT_PUBLIC_SITE_URL: https://${{ env.PROJECT_NAME }}.pages.dev
+
+      - name: Deploy to Cloudflare Pages
+        run: |
+          npx wrangler pages deploy dist \
+            --project-name="$PROJECT_NAME" \
+            --branch main
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Done
+        run: |
+          echo ""
+          echo "✅ Setup complete!"
+          echo "🌐 Site URL: https://$PROJECT_NAME.pages.dev"
+          echo "🔐 Admin:    https://$PROJECT_NAME.pages.dev/admin"
+          echo ""
+          echo "First visit /admin to create your administrator account."
