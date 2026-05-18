@@ -7,6 +7,9 @@ jobs:
   setup:
     name: Create Cloudflare resources & deploy
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -23,19 +26,14 @@ jobs:
       - name: Set project name
         run: |
           RAW="${{ secrets.CMS_PROJECT_NAME || github.event.repository.name }}"
-          PROJECT="${RAW,,}"          # 转小写
+          PROJECT="${RAW,,}"
           echo "PROJECT_NAME=$PROJECT" >> $GITHUB_ENV
           echo "DB_NAME=$PROJECT-db" >> $GITHUB_ENV
           echo "BUCKET_NAME=$PROJECT-media" >> $GITHUB_ENV
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Create D1 database
         run: |
-          # 先尝试创建（已存在会报错，忽略）
           npx wrangler d1 create "$DB_NAME" 2>&1 || true
-          # 按名称查 UUID（无论是新建还是已有）
           DB_LIST=$(npx wrangler d1 list --json)
           DB_ID=$(echo "$DB_LIST" | jq -r --arg name "$DB_NAME" '.[] | select(.name==$name) | .uuid')
           if [ -z "$DB_ID" ]; then
@@ -44,18 +42,12 @@ jobs:
           fi
           echo "DB_ID=$DB_ID" >> $GITHUB_ENV
           echo "✅ Database ready: $DB_NAME ($DB_ID)"
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Create R2 bucket
         run: |
           npx wrangler r2 bucket create "$BUCKET_NAME" \
             && echo "R2 bucket created: $BUCKET_NAME" \
             || echo "R2 bucket may already exist, continuing..."
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Patch wrangler.toml
         run: |
@@ -79,27 +71,18 @@ jobs:
               echo "→ Already applied, skipping"
             fi
           done
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Create Cloudflare Pages project
         run: |
           npx wrangler pages project create "$PROJECT_NAME" --production-branch main \
             && echo "Pages project created: $PROJECT_NAME" \
             || echo "Pages project may already exist, continuing..."
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Set JWT_SECRET
         run: |
           JWT_SECRET=$(openssl rand -hex 32)
           echo "$JWT_SECRET" | npx wrangler pages secret put JWT_SECRET \
             --project-name="$PROJECT_NAME"
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Build
         run: npm run build:pages
@@ -111,9 +94,6 @@ jobs:
           npx wrangler pages deploy dist \
             --project-name="$PROJECT_NAME" \
             --branch main
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Done
         run: |
