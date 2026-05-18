@@ -27,6 +27,9 @@ jobs:
         run: |
           RAW="${{ secrets.CMS_PROJECT_NAME || format('{0}-{1}', github.event.repository.name, github.ref_name) }}"
           PROJECT="${RAW,,}"
+          PROJECT="${PROJECT//[^a-z0-9-]/-}"
+          PROJECT=$(echo "$PROJECT" | sed 's/-\+/-/g; s/^-//; s/-$//')
+          PROJECT=$(echo "${PROJECT:0:63}" | sed 's/-$//')
           echo "PROJECT_NAME=$PROJECT" >> $GITHUB_ENV
           echo "DB_NAME=$PROJECT-db" >> $GITHUB_ENV
           echo "BUCKET_NAME=$PROJECT-media" >> $GITHUB_ENV

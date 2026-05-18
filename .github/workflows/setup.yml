@@ -27,6 +27,9 @@ jobs:
         run: |
           RAW="${{ secrets.CMS_PROJECT_NAME || format('{0}-{1}', github.event.repository.name, github.ref_name) }}"
           PROJECT="${RAW,,}"
+          PROJECT="${PROJECT//[^a-z0-9-]/-}"
+          PROJECT=$(echo "$PROJECT" | sed 's/-\+/-/g; s/^-//; s/-$//')
+          PROJECT=$(echo "${PROJECT:0:63}" | sed 's/-$//')
           echo "PROJECT_NAME=$PROJECT" >> $GITHUB_ENV
           echo "DB_NAME=$PROJECT-db" >> $GITHUB_ENV
           echo "BUCKET_NAME=$PROJECT-media" >> $GITHUB_ENV
@@ -81,6 +84,17 @@ jobs:
           npx wrangler pages project create "$PROJECT_NAME" --production-branch main \
             && echo "Pages project created: $PROJECT_NAME" \
             || echo "Pages project may already exist, continuing..."
+
+          PAGE_CHECK=$(curl -sf \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.success')
+          if [ "$PAGE_CHECK" != "true" ]; then
+            echo "❌ Pages project '$PROJECT_NAME' is not accessible under this account."
+            echo "   The name may be taken by another Cloudflare account."
+            echo "   Please set a CMS_PROJECT_NAME secret with a unique name and re-run Setup."
+            exit 1
+          fi
+          echo "✅ Pages project verified: $PROJECT_NAME"
 
       - name: Set JWT_SECRET
         run: |
