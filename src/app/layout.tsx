@@ -4,8 +4,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: { template: '%s | AI CMS', default: 'AI CMS' },
-  description: 'AI-powered content management system',
+  title: { template: '%s', default: 'CMS' },
+  description: '',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
