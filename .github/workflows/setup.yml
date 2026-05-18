@@ -67,6 +67,10 @@ jobs:
             if [ "$APPLIED" = "0" ]; then
               echo "→ Applying: $(basename $f)"
               npx wrangler d1 execute "$DB_NAME" --remote --file="$f"
+              # Auto-record in case migration file omits INSERT INTO migrations
+              npx wrangler d1 execute "$DB_NAME" --remote --command \
+                "INSERT OR IGNORE INTO migrations(version,name) VALUES($VERSION,'$(basename $f .sql)')" \
+                2>/dev/null || true
             else
               echo "→ Already applied, skipping"
             fi

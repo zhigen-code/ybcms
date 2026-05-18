@@ -50,6 +50,14 @@ jobs:
 
       - name: Run new migrations
         run: |
+          # Repair: mark migrations that were applied but not recorded (schema-based detection)
+          npx wrangler d1 execute "$DB_NAME" --remote --command \
+            "INSERT OR IGNORE INTO migrations(version,name) SELECT 4,'0004_clean_schema' WHERE (SELECT COUNT(*) FROM pragma_table_info('contents') WHERE name='category_id')=0" \
+            2>/dev/null || true
+          npx wrangler d1 execute "$DB_NAME" --remote --command \
+            "INSERT OR IGNORE INTO migrations(version,name) SELECT 7,'0007_categories_sort_order' WHERE (SELECT COUNT(*) FROM pragma_table_info('categories') WHERE name='sort_order')>0" \
+            2>/dev/null || true
+
           for f in $(ls migrations/*.sql | sort); do
             VERSION=$(basename "$f" | grep -o '^[0-9]*' | sed 's/^0*//')
             APPLIED=$(npx wrangler d1 execute "$DB_NAME" --remote \
@@ -58,6 +66,10 @@ jobs:
             if [ "$APPLIED" = "0" ]; then
               echo "→ Applying migration: $(basename $f)"
               npx wrangler d1 execute "$DB_NAME" --remote --file="$f"
+              # Auto-record in case migration file omits INSERT INTO migrations
+              npx wrangler d1 execute "$DB_NAME" --remote --command \
+                "INSERT OR IGNORE INTO migrations(version,name) VALUES($VERSION,'$(basename $f .sql)')" \
+                2>/dev/null || true
             fi
           done
 

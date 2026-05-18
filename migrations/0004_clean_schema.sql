@@ -6,3 +6,5 @@ ALTER TABLE contents ADD COLUMN parent_id TEXT REFERENCES contents(id) ON DELETE
 ALTER TABLE contents ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS idx_contents_parent ON contents(parent_id);
+
+INSERT OR IGNORE INTO migrations (version, name) VALUES (4, '0004_clean_schema');
