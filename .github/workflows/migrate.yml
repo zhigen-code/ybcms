@@ -1,0 +1,101 @@
+name: 🔀 Migrate Instance
+
+# 将一个分支实例的数据（D1 + 可选 R2）迁移到另一个分支实例
+# ⚠️ 会覆盖目标实例的数据，操作不可逆，请提前备份
+# 媒体文件同步需额外配置：
+#   R2_ACCESS_KEY_ID     - Cloudflare R2 API Token Access Key
+#   R2_SECRET_ACCESS_KEY - Cloudflare R2 API Token Secret
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: '源分支（数据来源，如 dev）'
+        required: true
+        type: string
+      target_branch:
+        description: '目标分支（数据写入，如 main）⚠️ 将覆盖目标数据'
+        required: true
+        type: string
+      include_media:
+        description: '同步 R2 媒体文件（需配置 R2 credentials）'
+        type: boolean
+        default: false
+
+jobs:
+  migrate:
+    name: Migrate [${{ inputs.source_branch }}] → [${{ inputs.target_branch }}]
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve source and target project names
+        run: |
+          OWNER_WORD=$(echo "${{ github.event.repository.owner.login }}" | tr '[:upper:]' '[:lower:]' | sed 's/[-_].*//')
+          REPO_CLEAN=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g; s/-\+/-/g; s/^-//; s/-$//')
+
+          sanitize_branch() {
+            echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/\/.*//' | sed 's/[^a-z0-9-]/-/g; s/-\+/-/g; s/^-//; s/-$//'
+          }
+
+          SRC_WORD=$(sanitize_branch "${{ inputs.source_branch }}")
+          TGT_WORD=$(sanitize_branch "${{ inputs.target_branch }}")
+
+          SOURCE="${OWNER_WORD}-${REPO_CLEAN}-${SRC_WORD}"
+          TARGET="${OWNER_WORD}-${REPO_CLEAN}-${TGT_WORD}"
+
+          echo "SOURCE_PROJECT=$SOURCE" >> $GITHUB_ENV
+          echo "TARGET_PROJECT=$TARGET" >> $GITHUB_ENV
+          echo "SOURCE_DB=${SOURCE}-db" >> $GITHUB_ENV
+          echo "TARGET_DB=${TARGET}-db" >> $GITHUB_ENV
+          echo "SOURCE_BUCKET=${SOURCE}-media" >> $GITHUB_ENV
+          echo "TARGET_BUCKET=${TARGET}-media" >> $GITHUB_ENV
+          echo "→ $SOURCE → $TARGET"
+
+      - name: Export source D1
+        run: |
+          npx wrangler d1 export "$SOURCE_DB" --remote --output source-dump.sql
+          # 转为 INSERT OR REPLACE 以安全覆盖目标数据
+          sed -i 's/^INSERT INTO /INSERT OR REPLACE INTO /g' source-dump.sql
+          echo "✅ Exported $(wc -l < source-dump.sql) lines from $SOURCE_DB"
+
+      - name: Import to target D1
+        run: |
+          echo "⚠️  Overwriting $TARGET_DB with data from $SOURCE_DB ..."
+          npx wrangler d1 execute "$TARGET_DB" --remote --file source-dump.sql
+          echo "✅ Imported to $TARGET_DB"
+
+      - name: Sync R2 media
+        if: ${{ inputs.include_media == true }}
+        run: |
+          echo "→ Syncing media: $SOURCE_BUCKET → $TARGET_BUCKET"
+          aws s3 sync \
+            "s3://$SOURCE_BUCKET" \
+            "s3://$TARGET_BUCKET" \
+            --endpoint-url "https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+            --no-progress
+          echo "✅ Media synced: $SOURCE_BUCKET → $TARGET_BUCKET"
+
+      - name: Done
+        run: |
+          echo ""
+          echo "✅ Migration complete: $SOURCE_PROJECT → $TARGET_PROJECT"
+          echo "   D1: $SOURCE_DB → $TARGET_DB"
+          if [ "${{ inputs.include_media }}" = "true" ]; then
+            echo "   R2: $SOURCE_BUCKET → $TARGET_BUCKET"
+          fi

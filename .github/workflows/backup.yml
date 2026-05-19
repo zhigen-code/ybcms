@@ -1,0 +1,104 @@
+name: 💾 Backup
+
+# 每天 02:00 UTC 自动备份 main 实例
+# 手动触发时备份当前选中的分支实例
+# 需要额外配置 GitHub Secrets：
+#   R2_ACCESS_KEY_ID     - Cloudflare R2 API Token Access Key（用于媒体备份）
+#   R2_SECRET_ACCESS_KEY - Cloudflare R2 API Token Secret（用于媒体备份）
+# R2 API Token 在 Cloudflare Dashboard → R2 → Manage R2 API Tokens 中创建
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    name: Backup D1 & R2 [${{ github.ref_name }}]
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set project name
+        run: |
+          CMS_CUSTOM="${{ secrets.CMS_PROJECT_NAME }}"
+          if [ -n "$CMS_CUSTOM" ]; then
+            RAW="$CMS_CUSTOM"
+          else
+            OWNER_WORD=$(echo "${{ github.event.repository.owner.login }}" | tr '[:upper:]' '[:lower:]' | sed 's/[-_].*//')
+            REPO_CLEAN=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g; s/-\+/-/g; s/^-//; s/-$//')
+            BRANCH_WORD=$(echo "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]' | sed 's/\/.*//' | sed 's/[^a-z0-9-]/-/g; s/-\+/-/g; s/^-//; s/-$//')
+            RAW="${OWNER_WORD}-${REPO_CLEAN}-${BRANCH_WORD}"
+          fi
+          PROJECT="${RAW//[^a-z0-9-]/-}"
+          PROJECT=$(echo "$PROJECT" | sed 's/-\+/-/g; s/^-//; s/-$//')
+          PROJECT=$(echo "${PROJECT:0:63}" | sed 's/-$//')
+          BACKUP_BUCKET="${PROJECT}-backup"
+          echo "PROJECT_NAME=$PROJECT" >> $GITHUB_ENV
+          echo "DB_NAME=$PROJECT-db" >> $GITHUB_ENV
+          echo "MEDIA_BUCKET=$PROJECT-media" >> $GITHUB_ENV
+          echo "BACKUP_BUCKET=$BACKUP_BUCKET" >> $GITHUB_ENV
+          echo "→ Project: $PROJECT"
+
+      - name: Ensure backup bucket exists
+        run: |
+          npx wrangler r2 bucket create "$BACKUP_BUCKET" 2>/dev/null \
+            && echo "✅ Backup bucket created: $BACKUP_BUCKET" \
+            || echo "→ Backup bucket already exists: $BACKUP_BUCKET"
+
+      - name: Export D1 database
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          echo "DATE=$DATE" >> $GITHUB_ENV
+          npx wrangler d1 export "$DB_NAME" --remote --output d1-backup.sql
+          echo "✅ D1 exported: $(wc -l < d1-backup.sql) lines"
+
+      - name: Upload D1 backup to R2
+        run: |
+          npx wrangler r2 object put "${BACKUP_BUCKET}/d1/${DATE}/dump.sql" \
+            --file d1-backup.sql
+          echo "✅ D1 backup → ${BACKUP_BUCKET}/d1/${DATE}/dump.sql"
+
+      - name: Sync R2 media to backup bucket
+        run: |
+          aws s3 sync \
+            "s3://$MEDIA_BUCKET" \
+            "s3://${BACKUP_BUCKET}/media" \
+            --endpoint-url "https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+            --no-progress \
+          && echo "✅ R2 media synced → ${BACKUP_BUCKET}/media" \
+          || echo "⚠️ R2 media sync skipped（未配置 R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY）"
+
+      - name: Clean up D1 backups older than 30 days
+        run: |
+          CUTOFF=$(date -u -d '30 days ago' +%Y-%m-%d)
+          echo "→ Removing backups before $CUTOFF"
+          aws s3 ls "s3://${BACKUP_BUCKET}/d1/" \
+            --endpoint-url "https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+            2>/dev/null \
+          | awk '{print $2}' | tr -d '/' \
+          | while read dir; do
+              [ -z "$dir" ] && continue
+              if [[ "$dir" < "$CUTOFF" ]]; then
+                echo "  Deleting: $dir"
+                aws s3 rm "s3://${BACKUP_BUCKET}/d1/${dir}/" --recursive \
+                  --endpoint-url "https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com"
+              fi
+            done \
+          || echo "⚠️ Cleanup skipped（未配置 R2 credentials）"
+          echo "✅ Cleanup done"
