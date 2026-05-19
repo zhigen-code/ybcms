@@ -16,6 +16,8 @@
     "migrate:local": "wrangler d1 execute cms-db --local --file",
     "migrate:remote": "wrangler d1 execute cms-db --config wrangler.local.toml --file",
     "migrate": "node scripts/migrate.js --config wrangler.local.toml",
+    "migrate:d1": "node scripts/migrate-d1.mjs",
+    "migrate:r2": "node scripts/migrate-r2.mjs",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts"
   },
   "dependencies": {
