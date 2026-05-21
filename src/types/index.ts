@@ -214,6 +214,12 @@ export interface SiteSettings {
   'ai.seo.priorityAI': boolean
   'ai.trigger.token': string
   'setup.completed': boolean
+  // 存储驱动
+  'storage.driver': 'r2' | 's3'
+  'storage.s3.endpoint': string
+  'storage.s3.bucket': string
+  'storage.s3.region': string
+  'storage.s3.public_url': string
 }
 
 export interface NavItem {

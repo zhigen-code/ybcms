@@ -1,7 +1,7 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { getCurrentUser, requireAdmin } from '@/lib/auth'
 import { generateImage } from '@/lib/ai'
-import { uploadToR2 } from '@/lib/r2'
+import { getStorageDriver } from '@/lib/storage'
 import { generateId } from '@/lib/utils'
 
 export async function POST(request: Request) {
@@ -15,7 +15,8 @@ export async function POST(request: Request) {
 
   const buffer = await generateImage(env, prompt)
   const key = `ai-images/${new Date().toISOString().slice(0, 7)}/${generateId()}.jpg`
-  const url = await uploadToR2(env, key, buffer as ArrayBuffer, 'image/jpeg')
+  const storage = await getStorageDriver(env)
+  const url = await storage.upload(key, buffer as ArrayBuffer, 'image/jpeg')
 
   return Response.json({ url })
 }

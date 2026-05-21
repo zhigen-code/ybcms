@@ -1,7 +1,7 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { getMediaById, deleteMedia } from '@/lib/db'
 import { getCurrentUser, requireAdmin } from '@/lib/auth'
-import { deleteFromR2 } from '@/lib/r2'
+import { getStorageDriver } from '@/lib/storage'
 
 
 interface Params { params: Promise<{ id: string }> }
@@ -16,8 +16,9 @@ export async function DELETE(request: Request, { params }: Params) {
   const media = await getMediaById(env.DB, id)
   if (!media) return Response.json({ error: '媒体文件不存在' }, { status: 404 })
 
+  const storage = await getStorageDriver(env)
   await Promise.all([
-    deleteFromR2(env, media.r2_key),
+    storage.delete(media.r2_key),
     deleteMedia(env.DB, id),
   ])
 

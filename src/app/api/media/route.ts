@@ -1,7 +1,7 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { getMediaList, createMedia, updateMedia } from '@/lib/db'
 import { getCurrentUser, requireAdmin } from '@/lib/auth'
-import { uploadToR2, generateMediaKey, isAllowedMimeType } from '@/lib/r2'
+import { getStorageDriver, generateMediaKey, isAllowedMimeType } from '@/lib/storage'
 import { generateId } from '@/lib/utils'
 import { generateImageAlt } from '@/lib/ai'
 
@@ -28,7 +28,8 @@ export async function POST(request: Request) {
 
   const r2Key = generateMediaKey(file.name)
   const buffer = await file.arrayBuffer()
-  const url = await uploadToR2(env, r2Key, buffer, file.type)
+  const storage = await getStorageDriver(env)
+  const url = await storage.upload(r2Key, buffer, file.type)
 
   const id = generateId()
   await createMedia(env.DB, {

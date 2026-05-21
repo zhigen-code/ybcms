@@ -1,5 +1,5 @@
 import { generateImage as aiGenerateImage } from '@/lib/ai'
-import { uploadToR2, generateMediaKey } from '@/lib/r2'
+import { getStorageDriver, generateMediaKey } from '@/lib/storage'
 import { createMedia } from '@/lib/db'
 import { generateId } from '@/lib/utils'
 
@@ -97,7 +97,8 @@ export async function saveCoverImage(
   }
 
   const r2Key = generateMediaKey(filename)
-  const url = await uploadToR2(env, r2Key, buffer, mimeType)
+  const storage = await getStorageDriver(env)
+  const url = await storage.upload(r2Key, buffer, mimeType)
 
   const mediaId = generateId()
   await createMedia(env.DB, {
@@ -158,7 +159,8 @@ export async function injectArticleImages(
       }
 
       const r2Key = generateMediaKey(filename)
-      const url = await uploadToR2(env, r2Key, imgBuffer, mimeType)
+      const storage = await getStorageDriver(env)
+      const url = await storage.upload(r2Key, imgBuffer, mimeType)
       const mediaId = generateId()
       await createMedia(env.DB, {
         id: mediaId, filename, r2_key: r2Key, url, mime_type: mimeType,

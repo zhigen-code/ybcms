@@ -9,4 +9,6 @@ interface CloudflareEnv {
   NEXT_PUBLIC_SITE_URL: string
   R2_PUBLIC_URL: string
   CRON_SECRET: string
+  S3_ACCESS_KEY_ID?: string
+  S3_SECRET_ACCESS_KEY?: string
 }
