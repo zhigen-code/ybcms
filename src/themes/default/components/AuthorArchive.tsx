@@ -1,9 +1,9 @@
 'use client'
 
-import Link from 'next/link'
 import type { Content, User } from '@/types'
 import PostCard from './PostCard'
 import PaginationNav from '@/components/PaginationNav'
+import Breadcrumb from './Breadcrumb'
 
 interface Pagination { page: number; totalPages: number; total: number; pageSize: number }
 
@@ -30,15 +30,14 @@ export default function AuthorArchive({ author, posts, pagination }: Props) {
 
       <div className="author-header">
         <div className="author-header-inner">
-          <Link href="/" style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-            fontSize: '0.85rem', color: 'var(--color-text-secondary)',
-            textDecoration: 'none', marginBottom: '2rem',
-            transition: 'color 0.15s',
-          }}
-            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'var(--color-text)')}
-            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)')}
-          >← 返回首页</Link>
+          <Breadcrumb
+            style={{ marginBottom: '2rem' }}
+            items={[
+              { label: '首页', href: '/' },
+              { label: '作者' },
+              { label: author.name },
+            ]}
+          />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
             {author.avatar

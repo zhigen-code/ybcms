@@ -39,11 +39,20 @@ export default function Header({ settings }: Props) {
           box-shadow: 0 1px 0 rgba(15,23,42,0.04);
         }
         @media(prefers-color-scheme:dark){
-          .site-header.scrolled { background: rgba(15,23,42,0.92); }
+          .site-header.scrolled {
+            background: rgba(15,23,42,0.88);
+            border-bottom-color: rgba(255,255,255,0.08);
+            box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+          }
         }
         .site-header:not(.scrolled) {
           background: transparent;
           border-bottom: 1px solid transparent;
+        }
+        @media(prefers-color-scheme:dark){
+          .site-header:not(.scrolled) {
+            background: linear-gradient(to bottom, rgba(15,23,42,0.7) 0%, transparent 100%);
+          }
         }
         .nav-link {
           padding: 0.375rem 0.75rem; border-radius: 6px;
@@ -53,6 +62,10 @@ export default function Header({ settings }: Props) {
           white-space: nowrap;
         }
         .nav-link:hover { color: var(--color-text); background: var(--color-bg-secondary); }
+        @media(prefers-color-scheme:dark){
+          .nav-link { color: rgba(255,255,255,0.7); }
+          .nav-link:hover { color: #fff; background: rgba(255,255,255,0.08); }
+        }
         .header-icon-btn {
           display: inline-flex; align-items: center; justify-content: center;
           width: 36px; height: 36px; border-radius: 8px;
@@ -61,6 +74,10 @@ export default function Header({ settings }: Props) {
           background: none; cursor: pointer;
         }
         .header-icon-btn:hover { color: var(--color-text); background: var(--color-bg-secondary); }
+        @media(prefers-color-scheme:dark){
+          .header-icon-btn { color: rgba(255,255,255,0.6); }
+          .header-icon-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+        }
         .header-admin-btn {
           font-size: 0.8rem; font-weight: 500;
           color: var(--color-text-secondary); text-decoration: none;
@@ -69,6 +86,10 @@ export default function Header({ settings }: Props) {
           transition: all 0.15s; white-space: nowrap;
         }
         .header-admin-btn:hover { color: var(--color-text); border-color: var(--color-text-secondary); background: var(--color-bg-secondary); }
+        @media(prefers-color-scheme:dark){
+          .header-admin-btn { color: rgba(255,255,255,0.55); border-color: rgba(255,255,255,0.12); }
+          .header-admin-btn:hover { color: #fff; border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.06); }
+        }
         @media(max-width:767px){
           .header-desktop-nav, .header-admin-btn { display: none !important; }
         }

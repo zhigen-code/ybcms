@@ -4,6 +4,14 @@ import MobileBottomNav from './components/MobileBottomNav'
 import type { ThemeLayoutProps } from '@/types/theme'
 import type { SiteSettings } from '@/types'
 
+// Dark mode override block — must come AFTER any :root{} user vars to win in the cascade
+const DARK_VARS = `@media(prefers-color-scheme:dark){:root{` +
+  `--color-bg:#0f172a;--color-bg-secondary:#1e293b;--color-bg-tertiary:#334155;` +
+  `--color-text:#f1f5f9;--color-text-secondary:#94a3b8;--color-text-muted:#64748b;` +
+  `--color-border:#334155;` +
+  `--shadow-sm:0 1px 3px rgba(0,0,0,.3);--shadow-md:0 4px 16px rgba(0,0,0,.3);--shadow-lg:0 16px 40px rgba(0,0,0,.4)` +
+  `}}`
+
 function buildCssVars(settings: SiteSettings): string {
   const vars = (settings['theme.variables'] as Record<string, string>) || {}
   const custom = (settings['theme.customCss'] as string) || ''
@@ -11,7 +19,10 @@ function buildCssVars(settings: SiteSettings): string {
     .filter(([, v]) => v)
     .map(([k, v]) => `${k}:${v}`)
     .join(';')
-  return declarations ? `:root{${declarations}}${custom}` : custom
+  const baseBlock = declarations ? `:root{${declarations}}` : ''
+  // DARK_VARS appended after baseBlock so the @media query overrides any light-mode
+  // color values the user may have stored in theme.variables
+  return `${baseBlock}${DARK_VARS}${custom}`
 }
 
 const proseStyles = `

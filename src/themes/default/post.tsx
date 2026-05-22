@@ -9,6 +9,7 @@ import PostCard from './components/PostCard'
 import ReadingProgress from './components/ReadingProgress'
 import BackToTop from './components/BackToTop'
 import InlineForm from './components/InlineForm'
+import Breadcrumb from './components/Breadcrumb'
 
 interface Props {
   post: Content
@@ -93,12 +94,16 @@ export default function DefaultPost({ post, settings, related = [], embeddedForm
           {/* ── Main article ── */}
           <article>
             {/* Breadcrumb */}
-            <nav style={{ marginBottom: '1.75rem' }}>
-              <Link href="/" style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', transition: 'color 0.15s' }}
-                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'var(--color-text)')}
-                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)')}
-              >← 返回</Link>
-            </nav>
+            <Breadcrumb
+              style={{ marginBottom: '1.75rem' }}
+              items={[
+                { label: '首页', href: '/' },
+                ...(post.categories?.length
+                  ? [{ label: post.categories[0].name, href: `/category/${post.categories[0].slug}` }]
+                  : []),
+                { label: post.title },
+              ]}
+            />
 
             {/* Header */}
             <header style={{ marginBottom: '2.5rem' }}>

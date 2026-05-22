@@ -4,6 +4,7 @@ import Link from 'next/link'
 import type { Content, Category, Tag } from '@/types'
 import PostCard from './PostCard'
 import PaginationNav from '@/components/PaginationNav'
+import Breadcrumb from './Breadcrumb'
 
 interface Pagination { page: number; totalPages: number; total: number; pageSize: number }
 
@@ -51,6 +52,15 @@ export default function ArchiveList({ title, slug, description, coverImage, post
         }
         <div className="archive-hero-overlay" />
         <div className="archive-hero-inner">
+          <Breadcrumb
+            dark
+            style={{ marginBottom: '0.875rem' }}
+            items={[
+              { label: '首页', href: '/' },
+              { label: type === 'category' ? '分类' : '标签' },
+              { label: title },
+            ]}
+          />
           <p className="archive-label">{type === 'category' ? '分类' : '标签'}</p>
           <h1 className="archive-title">{prefix}{title}</h1>
           {description && <p className="archive-desc">{description}</p>}

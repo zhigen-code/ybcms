@@ -6,6 +6,7 @@ import Link from 'next/link'
 import type { ThemeSearchProps } from '@/types/theme'
 import PostCard from './components/PostCard'
 import PaginationNav from '@/components/PaginationNav'
+import Breadcrumb from './components/Breadcrumb'
 
 function SearchBox({ defaultValue = '' }: { defaultValue?: string }) {
   const router = useRouter()
@@ -47,6 +48,13 @@ export default function DefaultSearch({ query, posts, pagination, categoryMap }:
   return (
     <main style={{ maxWidth: 'var(--max-width)', margin: '0 auto', padding: '3rem 1.5rem 6rem' }}>
       <div style={{ marginBottom: '2.5rem' }}>
+        <Breadcrumb
+          style={{ marginBottom: '1.25rem' }}
+          items={[
+            { label: '首页', href: '/' },
+            { label: '搜索' },
+          ]}
+        />
         <h1 style={{
           fontFamily: 'var(--font-heading)',
           fontSize: 'clamp(1.5rem,4vw,2rem)',
