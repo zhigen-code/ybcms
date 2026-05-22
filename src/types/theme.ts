@@ -29,6 +29,8 @@ export interface ThemePageProps {
   post: Content
   settings: SiteSettings
   embeddedForms?: Form[]
+  parentPage?: Content | null
+  childPages?: Content[]
 }
 
 export interface ThemeArchiveProps {

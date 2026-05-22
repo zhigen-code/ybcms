@@ -1,5 +1,5 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare'
-import { getContentBySlug, getFormBySlug } from '@/lib/db'
+import { getContentBySlug, getFormBySlug, getPagesByParent, getContent } from '@/lib/db'
 import { getSiteSettings } from '@/lib/config'
 import { loadTheme } from '@/lib/theme-loader'
 import { notFound } from 'next/navigation'
@@ -42,6 +42,13 @@ export default async function PagePage({ params }: Props) {
   ])
   if (!page || page.status !== 'published') notFound()
 
+  // Fetch parent page (for breadcrumb) and published child pages in parallel
+  const [parentPage, allChildren] = await Promise.all([
+    page.parent_id ? getContent(env.DB, page.parent_id) : Promise.resolve(null),
+    getPagesByParent(env.DB, page.id),
+  ])
+  const childPages = allChildren.filter(c => c.status === 'published')
+
   buildMarked()
   const { markdown: preprocessed, slugs: preSlugs } = preprocessFormShortcodes(page.content ?? '')
   const rawHtml = preprocessed ? await marked.parse(preprocessed) : ''
@@ -54,5 +61,13 @@ export default async function PagePage({ params }: Props) {
   const theme = await loadTheme(themeId)
   const { Page } = theme
 
-  return <Page post={{ ...page, content: htmlContent }} settings={settings} embeddedForms={embeddedForms} />
+  return (
+    <Page
+      post={{ ...page, content: htmlContent }}
+      settings={settings}
+      embeddedForms={embeddedForms}
+      parentPage={parentPage}
+      childPages={childPages}
+    />
+  )
 }
