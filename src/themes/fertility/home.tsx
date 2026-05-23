@@ -225,7 +225,7 @@ export default async function FertilityHome({ posts, settings, categories = [], 
               {doctors.map(doc => {
                 const f = parseFields(doc)
                 return (
-                  <Link key={doc.id} href={`/author/${doc.author?.id ?? doc.id}`} className="fh-doc-card">
+                  <Link key={doc.id} href={`/doctor/${doc.slug}`} className="fh-doc-card">
                     {doc.cover_image
                       ? <img src={doc.cover_image} alt={doc.title} className="fh-doc-avatar" />
                       : <div className="fh-doc-avatar-placeholder">👨‍⚕️</div>

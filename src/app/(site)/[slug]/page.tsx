@@ -1,5 +1,5 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare'
-import { getContentBySlug, getFormBySlug, getPagesByParent, getContent } from '@/lib/db'
+import { getContentBySlug, getFormBySlug, getPagesByParent, getContent, getContentTypes, getContents } from '@/lib/db'
 import { getSiteSettings } from '@/lib/config'
 import { loadTheme } from '@/lib/theme-loader'
 import { notFound } from 'next/navigation'
@@ -24,7 +24,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const { env } = getCloudflareContext()
   const page = await getContentBySlug(env.DB, 'page', slug)
-  if (!page) return {}
+  if (!page) {
+    const types = await getContentTypes(env.DB)
+    const ct = types.find(t => t.slug === slug || t.id === slug)
+    if (ct) return { title: ct.name }
+    return {}
+  }
   return {
     title: page.meta_title || page.title,
     description: page.meta_description || page.excerpt || undefined,
@@ -40,7 +45,28 @@ export default async function PagePage({ params }: Props) {
     getContentBySlug(env.DB, 'page', slug),
     getSiteSettings(env.DB),
   ])
-  if (!page || page.status !== 'published') notFound()
+
+  // Fallback: check if slug matches a custom content type → render as archive
+  if (!page || page.status !== 'published') {
+    const types = await getContentTypes(env.DB)
+    const ct = types.find(t => t.slug === slug || t.id === slug)
+    if (ct) {
+      const { items, pagination } = await getContents(env.DB, { type: ct.id, status: 'published', pageSize: 20 })
+      const themeId = settings['theme.active'] as string | undefined
+      const theme = await loadTheme(themeId)
+      const { Category } = theme
+      return (
+        <Category
+          title={ct.name}
+          slug={slug}
+          description={null}
+          posts={items}
+          pagination={pagination}
+        />
+      )
+    }
+    notFound()
+  }
 
   // Fetch parent page (for breadcrumb) and published child pages in parallel
   const [parentPage, allChildren] = await Promise.all([

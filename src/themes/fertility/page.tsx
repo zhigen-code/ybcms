@@ -24,6 +24,8 @@ export default function FertilityPage({ post, embeddedForms: _f, parentPage, chi
         .fpg-child-info { padding:1rem 1.125rem; }
         .fpg-child-title { font-size:.9375rem; font-weight:700; color:var(--color-text); line-height:1.4; margin-bottom:.25rem; }
         .fpg-child-excerpt { font-size:.82rem; color:var(--color-text-muted); line-height:1.6; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        .fpg-back-link { font-size:.875rem; color:var(--color-text-muted); text-decoration:none; transition:color .15s; }
+        .fpg-back-link:hover { color:var(--color-primary); }
       `}</style>
 
       {/* Hero */}
@@ -69,10 +71,7 @@ export default function FertilityPage({ post, embeddedForms: _f, parentPage, chi
         )}
 
         <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid var(--color-border)' }}>
-          <Link href="/" style={{ fontSize: '.875rem', color: 'var(--color-text-muted)', textDecoration: 'none', transition: 'color .15s' }}
-            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'var(--color-primary)')}
-            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)')}
-          >← 返回首页</Link>
+          <Link href="/" className="fpg-back-link">← 返回首页</Link>
         </div>
       </div>
     </main>
