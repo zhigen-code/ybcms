@@ -27,8 +27,14 @@ export default async function ContentListPage({ params, searchParams }: Props) {
   const { items, pagination } = await getContents(env.DB, { type, page, pageSize: PAGE_SIZE })
 
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 860, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+    <>
+    <style>{`
+      .cl-pg { padding: 28px 32px 48px; max-width: 860px; margin: 0 auto; }
+      .cl-pg-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; gap: 12px; }
+      @media(max-width:640px) { .cl-pg { padding: 16px 16px 48px; } }
+    `}</style>
+    <div className="cl-pg">
+      <div className="cl-pg-hd">
         <div>
           <h1 style={{ fontSize: '18px', fontWeight: 600, color: '#18181b', letterSpacing: '-0.02em', margin: 0 }}>
             {contentType.name}
@@ -39,7 +45,7 @@ export default async function ContentListPage({ params, searchParams }: Props) {
           display: 'inline-flex', alignItems: 'center', gap: '6px',
           padding: '7px 14px', background: '#18181b', color: '#fff',
           borderRadius: '8px', textDecoration: 'none',
-          fontSize: '13px', fontWeight: 500,
+          fontSize: '13px', fontWeight: 500, flexShrink: 0,
         }}>
           <PlusIcon size={14} />
           新建{contentType.name}
@@ -52,5 +58,6 @@ export default async function ContentListPage({ params, searchParams }: Props) {
         pagination={pagination}
       />
     </div>
+    </>
   )
 }

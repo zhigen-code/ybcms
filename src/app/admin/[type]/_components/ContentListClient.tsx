@@ -117,6 +117,17 @@ export default function ContentListClient({ initialItems, type, typeName, pagina
 
   return (
     <div>
+      <style>{`
+        .cl-side { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+        @media(max-width:640px) {
+          .cl-row { flex-wrap: wrap !important; padding: 10px 14px !important; gap: 6px 8px !important; align-items: flex-start !important; }
+          .cl-thumb { display: none !important; }
+          .cl-select-hd { padding: 8px 14px !important; }
+          .cl-side { width: 100%; margin-left: 23px; padding-top: 6px; border-top: 1px solid ${color.borderSubtle}; flex-wrap: wrap; gap: 6px !important; }
+          .cl-preview-btn { display: none !important; }
+        }
+      `}</style>
+
       {/* ── Toolbar ─────────────────────────────────────────────────────────── */}
       {someSelected ? (
         <div style={{
@@ -130,7 +141,7 @@ export default function ContentListClient({ initialItems, type, typeName, pagina
 
           {confirmBatchDelete ? (
             <>
-              <span style={{ fontSize: fontSize.sm, color: '#fca5a5' }}>确认删除 {selectedIds.size} 条内容？</span>
+              <span style={{ fontSize: fontSize.sm, color: '#fca5a5' }}>确认删除 {selectedIds.size} 条？</span>
               <button onClick={batchDelete} disabled={batchWorking}
                 style={{ ...CONFIRM_BTN, background: '#ef4444', color: '#fff', opacity: batchWorking ? 0.6 : 1 }}>
                 {batchWorking ? '删除中…' : '确认删除'}
@@ -163,7 +174,7 @@ export default function ContentListClient({ initialItems, type, typeName, pagina
         </div>
       ) : (
         <div style={{ display: 'flex', gap: '10px', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
+          <div style={{ flex: 1, minWidth: '160px', position: 'relative' }}>
             <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: color.textTertiary, pointerEvents: 'none', lineHeight: 0 }}>
               <SearchIcon size={15} />
             </span>
@@ -201,7 +212,7 @@ export default function ContentListClient({ initialItems, type, typeName, pagina
       ) : (
         <div style={{ border: `1px solid ${color.border}`, borderRadius: radius.lg, overflow: 'hidden', background: color.surface }}>
           {/* Select-all header */}
-          <div style={{
+          <div className="cl-select-hd" style={{
             display: 'flex', alignItems: 'center', gap: '14px',
             padding: '8px 20px',
             borderBottom: `1px solid ${color.border}`,
@@ -228,7 +239,7 @@ export default function ContentListClient({ initialItems, type, typeName, pagina
             const ts                 = item.published_at ?? item.created_at
 
             return (
-              <div key={item.id} style={{
+              <div key={item.id} className="cl-row" style={{
                 display: 'flex', alignItems: 'center', gap: '12px',
                 padding: '12px 20px',
                 borderBottom: i < filtered.length - 1 ? `1px solid ${color.borderSubtle}` : 'none',
@@ -244,8 +255,10 @@ export default function ContentListClient({ initialItems, type, typeName, pagina
                   style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: color.brand, flexShrink: 0 }}
                 />
 
-                {/* Cover thumbnail */}
-                <Thumbnail src={item.cover_image} letter={item.title} size={38} />
+                {/* Cover thumbnail — hidden on mobile */}
+                <span className="cl-thumb" style={{ lineHeight: 0, flexShrink: 0 }}>
+                  <Thumbnail src={item.cover_image} letter={item.title} size={38} />
+                </span>
 
                 {/* Title + meta */}
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -269,58 +282,62 @@ export default function ContentListClient({ initialItems, type, typeName, pagina
                   </p>
                 </div>
 
-                {/* Status badge / toggle confirm */}
-                {isConfirmingToggle ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                    <span style={{ fontSize: fontSize.xs, color: color.textSecondary, whiteSpace: 'nowrap' }}>
-                      切换为{item.status === 'published' ? '草稿' : '发布'}?
-                    </span>
-                    <button onClick={() => doToggleStatus(item)}
-                      style={{ ...CONFIRM_BTN, background: color.brand, color: '#fff' }}>确认</button>
-                    <button onClick={() => setConfirmToggleId(null)}
-                      style={{ ...CONFIRM_BTN, background: color.muted, color: color.textSecondary }}>取消</button>
-                  </div>
-                ) : (
-                  <StatusBadge status={item.status} onClick={() => setConfirmToggleId(item.id)} title="点击切换状态" />
-                )}
-
-                {/* Row actions / delete confirm */}
-                <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                  {isConfirmingDelete ? (
+                {/* Status + Actions */}
+                <div className="cl-side">
+                  {/* Status badge / toggle confirm */}
+                  {isConfirmingToggle ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ fontSize: fontSize.xs, color: color.danger, whiteSpace: 'nowrap' }}>确认删除?</span>
-                      <button onClick={() => doDelete(item.id)} disabled={deleting === item.id}
-                        style={{ ...CONFIRM_BTN, background: color.danger, color: '#fff', opacity: deleting === item.id ? 0.5 : 1 }}>
-                        删除
-                      </button>
-                      <button onClick={() => setConfirmDeleteId(null)}
-                        style={{ ...CONFIRM_BTN, background: color.muted, color: color.textSecondary }}>
-                        取消
-                      </button>
+                      <span style={{ fontSize: fontSize.xs, color: color.textSecondary, whiteSpace: 'nowrap' }}>
+                        切换为{item.status === 'published' ? '草稿' : '发布'}?
+                      </span>
+                      <button onClick={() => doToggleStatus(item)}
+                        style={{ ...CONFIRM_BTN, background: color.brand, color: '#fff' }}>确认</button>
+                      <button onClick={() => setConfirmToggleId(null)}
+                        style={{ ...CONFIRM_BTN, background: color.muted, color: color.textSecondary }}>取消</button>
                     </div>
                   ) : (
-                    <>
-                      <Link href={previewHref} target="_blank" title="预览" style={{ ...ICON_BTN, display: 'block', textDecoration: 'none' }}
-                        onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = color.muted; el.style.color = color.textPrimary }}
-                        onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.color = color.textTertiary }}
-                      >
-                        <EyeIcon size={15} />
-                      </Link>
-                      <Link href={editHref} title="编辑" style={{ ...ICON_BTN, display: 'block', textDecoration: 'none' }}
-                        onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = color.muted; el.style.color = '#2563eb' }}
-                        onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.color = color.textTertiary }}
-                      >
-                        <EditIcon size={15} />
-                      </Link>
-                      <button onClick={() => setConfirmDeleteId(item.id)} disabled={deleting === item.id} title="删除"
-                        style={{ ...ICON_BTN, opacity: deleting === item.id ? 0.4 : 1 }}
-                        onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = color.dangerMuted; el.style.color = color.danger }}
-                        onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.color = color.textTertiary }}
-                      >
-                        <TrashIcon size={15} />
-                      </button>
-                    </>
+                    <StatusBadge status={item.status} onClick={() => setConfirmToggleId(item.id)} title="点击切换状态" />
                   )}
+
+                  {/* Row actions / delete confirm */}
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {isConfirmingDelete ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: fontSize.xs, color: color.danger, whiteSpace: 'nowrap' }}>确认删除?</span>
+                        <button onClick={() => doDelete(item.id)} disabled={deleting === item.id}
+                          style={{ ...CONFIRM_BTN, background: color.danger, color: '#fff', opacity: deleting === item.id ? 0.5 : 1 }}>
+                          删除
+                        </button>
+                        <button onClick={() => setConfirmDeleteId(null)}
+                          style={{ ...CONFIRM_BTN, background: color.muted, color: color.textSecondary }}>
+                          取消
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <Link href={previewHref} target="_blank" title="预览" className="cl-preview-btn"
+                          style={{ ...ICON_BTN, display: 'block', textDecoration: 'none' }}
+                          onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = color.muted; el.style.color = color.textPrimary }}
+                          onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.color = color.textTertiary }}
+                        >
+                          <EyeIcon size={15} />
+                        </Link>
+                        <Link href={editHref} title="编辑" style={{ ...ICON_BTN, display: 'block', textDecoration: 'none' }}
+                          onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = color.muted; el.style.color = '#2563eb' }}
+                          onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.color = color.textTertiary }}
+                        >
+                          <EditIcon size={15} />
+                        </Link>
+                        <button onClick={() => setConfirmDeleteId(item.id)} disabled={deleting === item.id} title="删除"
+                          style={{ ...ICON_BTN, opacity: deleting === item.id ? 0.4 : 1 }}
+                          onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = color.dangerMuted; el.style.color = color.danger }}
+                          onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.color = color.textTertiary }}
+                        >
+                          <TrashIcon size={15} />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             )
