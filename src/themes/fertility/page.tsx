@@ -1,7 +1,26 @@
 import Link from 'next/link'
 import type { ThemePageProps } from '@/types/theme'
+import type { Form } from '@/types'
+import InlineForm from '@/themes/default/components/InlineForm'
 
-export default function FertilityPage({ post, embeddedForms: _f, parentPage, childPages = [] }: ThemePageProps) {
+function ProseWithForms({ html, forms }: { html: string; forms: Form[] }) {
+  const formMap = Object.fromEntries(forms.map(f => [f.slug, f]))
+  const parts = html.split(/<div[^>]*data-form="([^"]+)"[^>]*><\/div>/g)
+  if (parts.length === 1) {
+    return <div className="prose" dangerouslySetInnerHTML={{ __html: html }} />
+  }
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (i % 2 === 0) return part.trim() ? <div key={i} className="prose" dangerouslySetInnerHTML={{ __html: part }} /> : null
+        const form = formMap[part]
+        return form ? <InlineForm key={i} form={form} /> : null
+      })}
+    </>
+  )
+}
+
+export default function FertilityPage({ post, embeddedForms = [], parentPage, childPages = [] }: ThemePageProps) {
   return (
     <main style={{ background: 'var(--color-bg)' }}>
       <style>{`
@@ -50,7 +69,7 @@ export default function FertilityPage({ post, embeddedForms: _f, parentPage, chi
       {/* Content */}
       <div className="fpg-body">
         {post.content && (
-          <div className="prose" dangerouslySetInnerHTML={{ __html: post.content }} />
+          <ProseWithForms html={post.content} forms={embeddedForms} />
         )}
 
         {childPages.length > 0 && (
