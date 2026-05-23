@@ -40,6 +40,11 @@ export default function Footer({ settings }: Props) {
               onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)')}
             >搜索</Link>
             <span style={{ color: 'var(--color-border)' }}>·</span>
+            <Link href="/links" style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'var(--color-text)')}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)')}
+            >友情链接</Link>
+            <span style={{ color: 'var(--color-border)' }}>·</span>
             <Link href="/admin" style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
               onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'var(--color-text)')}
               onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)')}

@@ -1,4 +1,4 @@
-import type { Content, ContentType, Category, Tag, User, Media, ListResult, AITask, AITaskType, AITaskStatus, Form, FormSubmission } from '@/types'
+import type { Content, ContentType, Category, Tag, User, Media, ListResult, AITask, AITaskType, AITaskStatus, Form, FormSubmission, Link } from '@/types'
 
 export function getDB(env: CloudflareEnv): D1Database {
   return env.DB
@@ -773,6 +773,39 @@ export async function getApiKeyByHash(db: D1Database, hash: string): Promise<{ u
   db.prepare('UPDATE api_keys SET last_used_at = ? WHERE key_hash = ?')
     .bind(Math.floor(Date.now() / 1000), hash).run().catch(() => {})
   return { user_id: row.user_id as string, permissions: JSON.parse(row.permissions as string) }
+}
+
+// ── 友情链接 ────────────────────────────────────────────────
+
+export async function getLinks(db: D1Database, includeHidden = false): Promise<Link[]> {
+  const sql = includeHidden
+    ? 'SELECT * FROM links ORDER BY sort_order ASC, created_at ASC'
+    : "SELECT * FROM links WHERE status = 'active' ORDER BY sort_order ASC, created_at ASC"
+  const rows = await db.prepare(sql).all<Link>()
+  return rows.results
+}
+
+export async function createLink(db: D1Database, data: Omit<Link, 'created_at'>): Promise<void> {
+  await db.prepare(
+    'INSERT INTO links (id, name, url, description, logo, sort_order, status) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).bind(data.id, data.name, data.url, data.description ?? null, data.logo ?? null, data.sort_order, data.status).run()
+}
+
+export async function updateLink(db: D1Database, id: string, data: Partial<Omit<Link, 'id' | 'created_at'>>): Promise<void> {
+  const sets: string[] = []
+  const params: unknown[] = []
+  if (data.name       !== undefined) { sets.push('name = ?');        params.push(data.name) }
+  if (data.url        !== undefined) { sets.push('url = ?');         params.push(data.url) }
+  if (data.description !== undefined) { sets.push('description = ?'); params.push(data.description) }
+  if (data.logo       !== undefined) { sets.push('logo = ?');        params.push(data.logo) }
+  if (data.sort_order !== undefined) { sets.push('sort_order = ?');   params.push(data.sort_order) }
+  if (data.status     !== undefined) { sets.push('status = ?');      params.push(data.status) }
+  if (!sets.length) return
+  await db.prepare(`UPDATE links SET ${sets.join(', ')} WHERE id = ?`).bind(...params, id).run()
+}
+
+export async function deleteLink(db: D1Database, id: string): Promise<void> {
+  await db.prepare('DELETE FROM links WHERE id = ?').bind(id).run()
 }
 
 export async function publishScheduled(db: D1Database): Promise<{ published: number; ids: string[] }> {

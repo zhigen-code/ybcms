@@ -1,4 +1,4 @@
-import type { Content, SiteSettings, Category, Tag, User, Form } from '@/types'
+import type { Content, SiteSettings, Category, Tag, User, Form, Link } from '@/types'
 
 export interface ThemePagination {
   page: number; totalPages: number; total: number; pageSize: number
@@ -54,4 +54,9 @@ export interface ThemeSearchProps {
   posts: Content[]
   pagination: ThemePagination
   categoryMap: Record<string, Category>
+}
+
+export interface ThemeLinksProps {
+  links: Link[]
+  settings: SiteSettings
 }

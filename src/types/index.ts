@@ -242,3 +242,14 @@ export interface ApiKey {
   created_at: number
   last_used_at: number | null
 }
+
+export interface Link {
+  id: string
+  name: string
+  url: string
+  description: string | null
+  logo: string | null
+  sort_order: number
+  status: 'active' | 'hidden'
+  created_at: number
+}

@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react'
 import type {
   ThemeLayoutProps, ThemeHomeProps, ThemePostProps, ThemePageProps,
-  ThemeArchiveProps, ThemeAuthorProps, ThemeSearchProps,
+  ThemeArchiveProps, ThemeAuthorProps, ThemeSearchProps, ThemeLinksProps,
 } from '@/types/theme'
 import type { CustomFieldDef } from '@/types'
 
@@ -38,6 +38,7 @@ export interface ThemeModule {
   Tag: ComponentType<ThemeArchiveProps>
   Author: ComponentType<ThemeAuthorProps>
   Search: ComponentType<ThemeSearchProps>
+  Links: ComponentType<ThemeLinksProps>
 }
 
 // ── Theme Registry ────────────────────────────────────────────────────────────
