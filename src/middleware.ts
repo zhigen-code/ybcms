@@ -32,7 +32,7 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/admin/:path*',
-    // 2-segment paths whose first segment is not a known named route
-    '/((?!post|category|tag|author|search|links|form|content-type|admin|api|_next)[^/]+)/[^/]+',
+    // All 2-segment paths — middleware logic filters named routes internally
+    '/:type/:slug',
   ],
 }
