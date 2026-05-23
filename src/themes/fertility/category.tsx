@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import type { ThemeArchiveProps } from '@/types/theme'
 import type { Category } from '@/types'
 import { formatDate } from '@/lib/utils'
@@ -8,6 +9,8 @@ import PaginationNav from '@/components/PaginationNav'
 
 export default function FertilityCategory({ title, slug, description, coverImage, posts, pagination, siblings = [] }: ThemeArchiveProps) {
   const cats = siblings as Category[]
+  const pathname = usePathname()
+  const isCategory = pathname.startsWith('/category/')
 
   return (
     <main style={{ background: 'var(--color-bg)' }}>
@@ -44,7 +47,9 @@ export default function FertilityCategory({ title, slug, description, coverImage
         {coverImage && <img src={coverImage} alt={title} className="fca-hero-cover" />}
         <div className="fca-hero-inner">
           <p className="fca-breadcrumb">
-            <Link href="/">首页</Link> / <Link href="/category">分类</Link> / {title}
+            <Link href="/">首页</Link>
+            {isCategory && <> / <Link href="/category">分类</Link></>}
+            {' '}/ {title}
           </p>
           <h1>{title}</h1>
           {description && <p>{description}</p>}
@@ -72,7 +77,7 @@ export default function FertilityCategory({ title, slug, description, coverImage
           <>
             <div className="fca-grid">
               {posts.map(post => (
-                <Link key={post.id} href={`/post/${post.slug}`} className="fca-card">
+                <Link key={post.id} href={post.type === 'post' ? `/post/${post.slug}` : `/${post.type}/${post.slug}`} className="fca-card">
                   {post.cover_image
                     ? <img src={post.cover_image} alt={post.title} className="fca-cover" />
                     : <div className="fca-cover-ph">📰</div>
@@ -91,7 +96,7 @@ export default function FertilityCategory({ title, slug, description, coverImage
                 totalPages={pagination.totalPages}
                 total={pagination.total}
                 pageSize={pagination.pageSize}
-                buildHref={p => p === 1 ? `/category/${slug}` : `/category/${slug}?page=${p}`}
+                buildHref={p => p === 1 ? pathname : `${pathname}?page=${p}`}
               />
             </div>
           </>

@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import type { Link as FriendlyLink, SiteSettings } from '@/types'
 import { ExternalLinkIcon, GlobeIcon } from '@/components/icons'
