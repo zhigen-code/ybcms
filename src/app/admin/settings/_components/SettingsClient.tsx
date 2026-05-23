@@ -222,16 +222,16 @@ export default function SettingsClient({ initialSettings }: Props) {
               </div>
               <button
                 type="button"
-                onClick={() => update('site.showAiBadge', !settings['site.showAiBadge'])}
+                onClick={() => update('site.showAiBadge', settings['site.showAiBadge'] === false)}
                 style={{
                   flexShrink: 0, width: '40px', height: '22px', borderRadius: '11px', border: 'none',
-                  background: settings['site.showAiBadge'] ? '#18181b' : '#d4d4d8',
+                  background: settings['site.showAiBadge'] !== false ? '#18181b' : '#d4d4d8',
                   cursor: 'pointer', position: 'relative', transition: 'background 0.2s',
                 }}
               >
                 <span style={{
                   position: 'absolute', top: '3px',
-                  left: settings['site.showAiBadge'] ? '21px' : '3px',
+                  left: settings['site.showAiBadge'] !== false ? '21px' : '3px',
                   width: '16px', height: '16px', borderRadius: '50%',
                   background: '#fff', transition: 'left 0.2s',
                 }} />
