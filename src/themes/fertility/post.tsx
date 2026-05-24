@@ -175,7 +175,7 @@ export default function FertilityPost({ post, settings: _settings, related = [],
             {isDoctor && (sf(fields, 'position') || sf(fields, 'department') || sf(fields, 'years_experience') || sf(fields, 'specialties') || sf(fields, 'education') || sf(fields, 'appointment_url')) && (
               <div className="fp-info-panel">
                 <div className="fp-info-panel-head">
-                  <span className="fp-info-panel-label">👨‍⚕️ 医生信息</span>
+                  <span className="fp-info-panel-label">医生信息</span>
                   {sf(fields, 'appointment_url')
                     ? <a href={sf(fields, 'appointment_url')} className="fp-appt-btn" target="_blank" rel="noopener noreferrer">预约挂号 →</a>
                     : <Link href="/contact" className="fp-appt-btn">预约咨询 →</Link>
@@ -220,7 +220,7 @@ export default function FertilityPost({ post, settings: _settings, related = [],
             {isService && (sf(fields, 'subtitle') || sf(fields, 'suitable_for') || sf(fields, 'duration') || sf(fields, 'price_range') || sf(fields, 'success_rate')) && (
               <div className="fp-info-panel">
                 <div className="fp-info-panel-head">
-                  <span className="fp-info-panel-label">🏥 服务详情</span>
+                  <span className="fp-info-panel-label">服务详情</span>
                 </div>
                 {sf(fields, 'subtitle') && (
                   <p style={{ fontSize: '.9375rem', color: 'var(--color-text-secondary)', marginBottom: '1rem', lineHeight: 1.7 }}>{sf(fields, 'subtitle')}</p>

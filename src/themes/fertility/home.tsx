@@ -88,7 +88,7 @@ export default async function FertilityHome({ posts, settings, categories = [], 
         @media(max-width:560px){ .fh-services{ grid-template-columns:1fr; } }
         .fh-svc-card { background:var(--color-bg); border:1px solid var(--color-border); border-radius:16px; padding:1.75rem; transition:box-shadow .2s,border-color .2s; text-decoration:none; display:flex; flex-direction:column; gap:1rem; }
         .fh-svc-card:hover { box-shadow:var(--shadow-md,0 4px 16px rgba(193,123,138,.12)); border-color:var(--color-primary); }
-        .fh-svc-icon { width:52px; height:52px; border-radius:14px; background:color-mix(in srgb,var(--color-primary) 12%,transparent); display:flex; align-items:center; justify-content:center; font-size:1.5rem; }
+        .fh-svc-icon { width:52px; height:52px; border-radius:14px; background:color-mix(in srgb,var(--color-primary) 12%,transparent); display:flex; align-items:center; justify-content:center; font-size:1.25rem; font-weight:800; font-family:var(--font-heading); color:var(--color-primary); }
         .fh-svc-name { font-family:var(--font-heading); font-size:1.05rem; font-weight:700; color:var(--color-text); line-height:1.3; }
         .fh-svc-desc { font-size:.875rem; color:var(--color-text-secondary); line-height:1.7; flex:1; }
         .fh-svc-meta { display:flex; flex-wrap:wrap; gap:.5rem; }
@@ -101,7 +101,7 @@ export default async function FertilityHome({ posts, settings, categories = [], 
         .fh-doc-card { text-align:center; text-decoration:none; }
         .fh-doc-avatar { width:100%; aspect-ratio:1; border-radius:16px; object-fit:cover; object-position:top; background:var(--color-bg-secondary); margin-bottom:1rem; border:3px solid var(--color-border); transition:border-color .2s; }
         .fh-doc-card:hover .fh-doc-avatar { border-color:var(--color-primary); }
-        .fh-doc-avatar-placeholder { width:100%; aspect-ratio:1; border-radius:16px; background:color-mix(in srgb,var(--color-primary) 12%,var(--color-bg-secondary)); display:flex; align-items:center; justify-content:center; font-size:3rem; margin-bottom:1rem; border:3px solid var(--color-border); transition:border-color .2s; }
+        .fh-doc-avatar-placeholder { width:100%; aspect-ratio:1; border-radius:16px; background:color-mix(in srgb,var(--color-primary) 12%,var(--color-bg-secondary)); display:flex; align-items:center; justify-content:center; font-size:2.5rem; font-weight:800; font-family:var(--font-heading); color:var(--color-primary); margin-bottom:1rem; border:3px solid var(--color-border); transition:border-color .2s; }
         .fh-doc-card:hover .fh-doc-avatar-placeholder { border-color:var(--color-primary); }
         .fh-doc-name { font-family:var(--font-heading); font-size:1rem; font-weight:700; color:var(--color-text); margin-bottom:.25rem; }
         .fh-doc-position { font-size:.8rem; color:var(--color-primary); font-weight:600; margin-bottom:.25rem; }
@@ -194,7 +194,7 @@ export default async function FertilityHome({ posts, settings, categories = [], 
                 const f = parseFields(svc)
                 return (
                   <Link key={svc.id} href={`/service/${svc.slug}`} className="fh-svc-card">
-                    <div className="fh-svc-icon">🏥</div>
+                    <div className="fh-svc-icon">{svc.title.slice(0, 1)}</div>
                     <div>
                       <div className="fh-svc-name">{svc.title}</div>
                       {svc.excerpt && <p className="fh-svc-desc">{svc.excerpt}</p>}
@@ -228,7 +228,7 @@ export default async function FertilityHome({ posts, settings, categories = [], 
                   <Link key={doc.id} href={`/doctor/${doc.slug}`} className="fh-doc-card">
                     {doc.cover_image
                       ? <img src={doc.cover_image} alt={doc.title} className="fh-doc-avatar" />
-                      : <div className="fh-doc-avatar-placeholder">👨‍⚕️</div>
+                      : <div className="fh-doc-avatar-placeholder">{doc.title.slice(0, 1)}</div>
                     }
                     <div className="fh-doc-name">{doc.title}</div>
                     {sf(f, 'position') && <div className="fh-doc-position">{sf(f, 'position')}</div>}
