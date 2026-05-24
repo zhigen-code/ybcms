@@ -40,7 +40,7 @@ export default function FertilityHeader({ settings }: Props) {
         .fh-nav a:hover { color:var(--color-primary); background:rgba(193,123,138,.07); }
         .fh-cta { display:inline-flex; align-items:center; padding:9px 20px; background:var(--color-primary); color:#fff; border-radius:99px; font-size:.875rem; font-weight:600; text-decoration:none; transition:opacity .15s; flex-shrink:0; white-space:nowrap; }
         .fh-cta:hover { opacity:.88; }
-        .fh-ham { display:none; flex-direction:column; justify-content:center; gap:5px; width:38px; height:38px; border:none; background:none; cursor:pointer; padding:5px; border-radius:7px; flex-shrink:0; }
+        .fh-ham { display:none; flex-direction:column; justify-content:center; gap:5px; width:38px; height:38px; border:none; background:none; cursor:pointer; padding:5px; border-radius:7px; flex-shrink:0; margin-left:auto; }
         .fh-ham span { display:block; height:2px; background:var(--color-text); border-radius:2px; transition:transform .25s,opacity .25s; }
         .fh-overlay { position:fixed; inset:0; background:rgba(26,26,46,.45); z-index:99; backdrop-filter:blur(2px); }
         .fh-drawer { position:fixed; top:0; right:0; bottom:0; width:min(340px,90vw); background:#fff; z-index:100; display:flex; flex-direction:column; padding:1.5rem; box-shadow:-4px 0 24px rgba(0,0,0,.12); overflow-y:auto; }
