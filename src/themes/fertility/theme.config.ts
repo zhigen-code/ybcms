@@ -82,6 +82,7 @@ export const defaultNav: NavItem[] = [
   { id: 'nav-service',     label: '诊疗服务', url: '/service'     },
   { id: 'nav-doctor',      label: '医生团队', url: '/doctor'      },
   { id: 'nav-testimonial', label: '患者故事', url: '/testimonial' },
+  { id: 'nav-category',    label: '科普资讯', url: '/category'    },
 ]
 
 export default themeConfig
