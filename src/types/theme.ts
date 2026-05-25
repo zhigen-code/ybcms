@@ -47,6 +47,7 @@ export interface ThemeAuthorProps {
   author: User
   posts: Content[]
   pagination: ThemePagination
+  settings: SiteSettings
 }
 
 export interface ThemeSearchProps {

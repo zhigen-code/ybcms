@@ -1,19 +1,20 @@
 'use client'
 
-import type { Content, User } from '@/types'
+import type { Content, User, SiteSettings } from '@/types'
 import PostCard from './PostCard'
 import PaginationNav from '@/components/PaginationNav'
 import Breadcrumb from './Breadcrumb'
 
 interface Pagination { page: number; totalPages: number; total: number; pageSize: number }
 
-interface Props { author: User; posts: Content[]; pagination: Pagination }
+interface Props { author: User; posts: Content[]; pagination: Pagination; settings?: SiteSettings }
 
 const ROLE_LABEL: Record<string, string> = {
   admin: '管理员', editor: '编辑', author: '作者', subscriber: '订阅者',
 }
 
-export default function AuthorArchive({ author, posts, pagination }: Props) {
+export default function AuthorArchive({ author, posts, pagination, settings }: Props) {
+  const showAiBadge = settings ? settings['site.showAiBadge'] !== false : false
   const initials = author.name.slice(0, 2).toUpperCase()
 
   return (
@@ -64,7 +65,7 @@ export default function AuthorArchive({ author, posts, pagination }: Props) {
         ) : (
           <>
             <div className="author-grid">
-              {posts.map(post => <PostCard key={post.id} post={post} />)}
+              {posts.map(post => <PostCard key={post.id} post={post} showAiBadge={showAiBadge} />)}
             </div>
             <PaginationNav
               page={pagination.page}

@@ -44,5 +44,5 @@ export default async function AuthorPage({ params, searchParams }: Props) {
   const theme = await loadTheme(themeId)
   const { Author } = theme
 
-  return <Author author={author} posts={posts} pagination={pagination} />
+  return <Author author={author} posts={posts} pagination={pagination} settings={settings} />
 }
