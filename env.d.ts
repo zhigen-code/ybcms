@@ -11,4 +11,5 @@ interface CloudflareEnv {
   CRON_SECRET: string
   S3_ACCESS_KEY_ID?: string
   S3_SECRET_ACCESS_KEY?: string
+  JINA_API_KEY?: string
 }

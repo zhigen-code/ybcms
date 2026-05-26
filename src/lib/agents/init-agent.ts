@@ -46,7 +46,7 @@ export async function analyzeWebsite(
   contentSourceUrl: string,
   styleReferenceUrl?: string
 ): Promise<InitPlan> {
-  const jinaKey = (env as unknown as Record<string, string>).JINA_API_KEY || undefined
+  const jinaKey = env.JINA_API_KEY || undefined
 
   // 1. Crawl homepage
   const homepageMd = await fetchWithJina(contentSourceUrl, jinaKey)
