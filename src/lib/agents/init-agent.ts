@@ -6,30 +6,23 @@ import type { InitBasicInfo, InitPlan } from '@/types'
 
 const JINA_BASE = 'https://r.jina.ai'
 
-async function fetchWithJina(url: string, retries = 3): Promise<string> {
-  let lastErr: Error | null = null
-  for (let i = 0; i < retries; i++) {
-    if (i > 0) await new Promise(r => setTimeout(r, 2000 * i))
-    try {
-      const resp = await fetch(`${JINA_BASE}/${url}`, {
-        headers: { Accept: 'text/plain' },
-        signal: AbortSignal.timeout(40000),
-      })
-      if (resp.status === 429) {
-        // Respect Retry-After if present, otherwise back off
-        const retryAfter = Number(resp.headers.get('Retry-After') ?? 0)
-        const wait = retryAfter > 0 ? retryAfter * 1000 : 3000 * (i + 1)
-        await new Promise(r => setTimeout(r, wait))
-        lastErr = new Error(`Jina fetch failed for ${url}: 429`)
-        continue
-      }
-      if (!resp.ok) throw new Error(`Jina fetch failed for ${url}: ${resp.status}`)
-      return resp.text()
-    } catch (e) {
-      lastErr = e as Error
+async function fetchWithJina(url: string, apiKey?: string): Promise<string> {
+  const headers: Record<string, string> = { Accept: 'text/plain' }
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`
+
+  const resp = await fetch(`${JINA_BASE}/${url}`, {
+    headers,
+    signal: AbortSignal.timeout(40000),
+  })
+
+  if (resp.status === 429) {
+    if (!apiKey) {
+      throw new Error('Jina 访问频率超限 (429)。请在 Cloudflare Workers 环境变量中配置 JINA_API_KEY 以解除限制（免费注册：https://jina.ai）')
     }
+    throw new Error(`Jina 429: ${url}`)
   }
-  throw lastErr ?? new Error(`Jina fetch failed for ${url}`)
+  if (!resp.ok) throw new Error(`Jina fetch failed for ${url}: ${resp.status}`)
+  return resp.text()
 }
 
 function extractUrls(markdown: string, base: string): string[] {
@@ -53,28 +46,30 @@ export async function analyzeWebsite(
   contentSourceUrl: string,
   styleReferenceUrl?: string
 ): Promise<InitPlan> {
-  // 1. Crawl homepage
-  const homepageMd = await fetchWithJina(contentSourceUrl)
+  const jinaKey = (env as unknown as Record<string, string>).JINA_API_KEY || undefined
 
-  // 2. Extract sub-page URLs from homepage, crawl up to 3 sequentially to avoid rate limits
+  // 1. Crawl homepage
+  const homepageMd = await fetchWithJina(contentSourceUrl, jinaKey)
+
+  // 2. Extract sub-page URLs from homepage, crawl up to 3 sequentially
   const subUrls = extractUrls(homepageMd, contentSourceUrl)
   const subPageContents: string[] = []
   for (const u of subUrls.slice(0, 3)) {
-    await new Promise(r => setTimeout(r, 1500))
+    await new Promise(r => setTimeout(r, 1000))
     try {
-      const md = await fetchWithJina(u)
+      const md = await fetchWithJina(u, jinaKey)
       subPageContents.push(`=== ${u} ===\n${md.slice(0, 3000)}`)
     } catch {
-      // ignore individual failures
+      // skip on any error, sub-pages are best-effort
     }
   }
 
   // 3. (Optional) crawl style reference
   let styleMd = ''
   if (styleReferenceUrl) {
-    await new Promise(r => setTimeout(r, 1500))
+    await new Promise(r => setTimeout(r, 1000))
     try {
-      styleMd = await fetchWithJina(styleReferenceUrl)
+      styleMd = await fetchWithJina(styleReferenceUrl, jinaKey)
     } catch {
       // ignore
     }

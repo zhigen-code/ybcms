@@ -1,4 +1,6 @@
-import InitWizard from './_components/InitWizard'
+import dynamic from 'next/dynamic'
+
+const InitWizard = dynamic(() => import('./_components/InitWizard'), { ssr: false })
 
 export default function InitPage() {
   return (
