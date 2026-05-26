@@ -165,8 +165,6 @@ export default function AIDashboard({ initialTasks, totalTasks, initialSettings 
 
   // Schedule state
   const [scheduleEnabled, setScheduleEnabled] = useState(Boolean(initialSettings['ai.schedule.enabled']))
-  const [scheduleHours, setScheduleHours] = useState<number[]>((initialSettings['ai.schedule.hours'] as number[]) || [9, 13, 17, 20])
-  const [scheduleTz, setScheduleTz] = useState(Number(initialSettings['ai.schedule.timezone'] ?? 8))
   const [scheduleRunMin, setScheduleRunMin] = useState(Number(initialSettings['ai.schedule.runMin'] ?? 1))
   const [scheduleRunMax, setScheduleRunMax] = useState(Number(initialSettings['ai.schedule.runMax'] ?? 1))
   const [scheduleDailyMax, setScheduleDailyMax] = useState(Number(initialSettings['ai.schedule.dailyMax'] ?? 10))
@@ -244,6 +242,11 @@ export default function AIDashboard({ initialTasks, totalTasks, initialSettings 
     return `${base}/api/agents/trigger?token=${triggerToken}&agent=${agent}`
   }
 
+  function buildScheduleUrl() {
+    const base = typeof window !== 'undefined' ? window.location.origin : ''
+    return `${base}/api/agents/trigger?token=${triggerToken}&agent=content&mode=schedule`
+  }
+
   async function handlePreviewTopics() {
     setPreviewLoading(true)
     setPreviewTopics([])
@@ -287,8 +290,6 @@ export default function AIDashboard({ initialTasks, totalTasks, initialSettings 
         'ai.content.systemPrompt': systemPrompt,
         'ai.content.userPrompt': userPrompt,
         'ai.schedule.enabled': scheduleEnabled,
-        'ai.schedule.hours': scheduleHours,
-        'ai.schedule.timezone': scheduleTz,
         'ai.schedule.runMin': scheduleRunMin,
         'ai.schedule.runMax': scheduleRunMax,
         'ai.schedule.dailyMax': scheduleDailyMax,
@@ -321,11 +322,6 @@ export default function AIDashboard({ initialTasks, totalTasks, initialSettings 
     setCategoryPlans(prev => prev.map(p => p.categoryId === categoryId ? { ...p, [field]: value } : p))
   }
 
-  function toggleScheduleHour(h: number) {
-    setScheduleHours(prev =>
-      prev.includes(h) ? prev.filter(x => x !== h) : [...prev, h].sort((a, b) => a - b)
-    )
-  }
 
   const cardBase: React.CSSProperties = {
     background: '#fff', border: '1px solid #e4e4e7', borderRadius: '12px', padding: '20px',
@@ -373,7 +369,7 @@ export default function AIDashboard({ initialTasks, totalTasks, initialSettings 
                   <p style={{ fontSize: '14px', fontWeight: 600, color: '#18181b', margin: 0 }}>内容 Agent</p>
                   <p style={{ fontSize: '12px', color: '#71717a', margin: 0 }}>
                     {scheduleEnabled
-                      ? `计划 ${scheduleHours.length} 个时段 · ${scheduleRunMin === scheduleRunMax ? scheduleRunMin : `${scheduleRunMin}–${scheduleRunMax}`} 篇/次 · 上限 ${scheduleDailyMax} 篇/天`
+                      ? `计划模式 · ${scheduleRunMin === scheduleRunMax ? scheduleRunMin : `${scheduleRunMin}–${scheduleRunMax}`} 篇/次 · 上限 ${scheduleDailyMax} 篇/天`
                       : `生成 ${count} 篇 · ${length === 'short' ? '短文' : length === 'long' ? '长文' : '中等'} · ${autoPublish ? '直接发布' : '保存草稿'}`}
                   </p>
                 </div>
@@ -820,117 +816,105 @@ export default function AIDashboard({ initialTasks, totalTasks, initialSettings 
             <Toggle
               checked={scheduleEnabled}
               onChange={setScheduleEnabled}
-              label="启用定时发布计划"
-              desc="开启后，Cron 触发时将按照以下时间表运行，而不是每次都执行"
+              label="启用发布计划"
+              desc="开启后每次触发计划 URL 将随机决定篇数并按权重选取分类，而非执行完整计划"
             />
           </div>
 
           {scheduleEnabled && (
             <>
-              {/* Time slots */}
+              {/* Per-run count + daily cap */}
               <div style={cardBase}>
-                <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#18181b', margin: '0 0 4px' }}>发布时段</h3>
-                <p style={{ fontSize: '12px', color: '#71717a', margin: '0 0 14px' }}>
-                  选择每天哪些整点小时运行。Cron Worker 建议设为每小时触发一次（<code style={{ background: '#f4f4f5', padding: '1px 4px', borderRadius: '3px' }}>0 * * * *</code>），
-                  只在选中的时段才会真正生成文章。
-                </p>
-
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
-                  {Array.from({ length: 24 }, (_, h) => (
-                    <button
-                      key={h}
-                      onClick={() => toggleScheduleHour(h)}
-                      style={{
-                        width: '40px', height: '32px', fontSize: '12px', fontWeight: 500,
-                        borderRadius: '7px', cursor: 'pointer',
-                        border: scheduleHours.includes(h) ? '1.5px solid #6366f1' : '1px solid #e4e4e7',
-                        background: scheduleHours.includes(h) ? 'rgba(99,102,241,0.1)' : '#fff',
-                        color: scheduleHours.includes(h) ? '#6366f1' : '#71717a',
-                      }}
-                    >
-                      {String(h).padStart(2, '0')}
-                    </button>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#18181b', margin: '0 0 4px' }}>生成数量</h3>
+                <p style={{ fontSize: '12px', color: '#71717a', margin: '0 0 14px' }}>每次触发随机生成 最少~最多 篇文章，当日累计超过上限后自动跳过。</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {([
+                    ['最少篇数', scheduleRunMin, (v: number) => { setScheduleRunMin(v); if (scheduleRunMax < v) setScheduleRunMax(v) }, 1, 20],
+                    ['最多篇数', scheduleRunMax, (v: number) => setScheduleRunMax(Math.max(scheduleRunMin, v)), scheduleRunMin, 20],
+                    ['每日上限', scheduleDailyMax, setScheduleDailyMax, 1, 100],
+                  ] as [string, number, (v: number) => void, number, number][]).map(([label, val, setter, min, max]) => (
+                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '13px', color: '#3f3f46', width: '72px', flexShrink: 0 }}>{label}</span>
+                      <input
+                        type="number" min={min} max={max} value={val}
+                        onChange={e => setter(Number(e.target.value))}
+                        style={{ ...inputBase, width: '70px', textAlign: 'center', padding: '5px 8px' }}
+                      />
+                      <span style={{ fontSize: '12px', color: '#a1a1aa' }}>{label === '每日上限' ? '篇 / 天' : '篇'}</span>
+                    </div>
                   ))}
                 </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '13px', color: '#3f3f46', width: '80px', flexShrink: 0 }}>时区偏移</span>
-                  <input
-                    type="number" min={-12} max={14} value={scheduleTz}
-                    onChange={e => setScheduleTz(Number(e.target.value))}
-                    style={{ ...inputBase, width: '70px', textAlign: 'center', padding: '5px 8px' }}
-                  />
-                  <span style={{ fontSize: '12px', color: '#a1a1aa' }}>UTC+{scheduleTz >= 0 ? scheduleTz : scheduleTz}（中国大陆为 +8）</span>
-                </div>
-
-                {scheduleHours.length > 0 && (
-                  <p style={{ fontSize: '12px', color: '#6366f1', marginTop: '10px', background: 'rgba(99,102,241,0.05)', borderRadius: '7px', padding: '7px 10px' }}>
-                    将在每天 {scheduleHours.map(h => `${String(h).padStart(2,'0')}:00`).join('、')} 触发（UTC+{scheduleTz}）
-                  </p>
-                )}
               </div>
 
-              {/* Per-run count */}
+              {/* Category weights summary */}
               <div style={cardBase}>
-                <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#18181b', margin: '0 0 4px' }}>每次生成篇数</h3>
-                <p style={{ fontSize: '12px', color: '#71717a', margin: '0 0 14px' }}>
-                  每次触发随机生成 Min ~ Max 篇文章，每日总量不超过上限。
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#18181b', margin: '0 0 4px' }}>分类权重</h3>
+                <p style={{ fontSize: '12px', color: '#71717a', margin: '0 0 10px' }}>
+                  每次触发按权重随机选一个分类生成文章。在「内容 Agent」标签页的分类计划中配置权重（数值越大被选中概率越高）。
                 </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '13px', color: '#3f3f46', width: '80px', flexShrink: 0 }}>最少篇数</span>
-                    <input
-                      type="number" min={1} max={20} value={scheduleRunMin}
-                      onChange={e => { const v = Number(e.target.value); setScheduleRunMin(v); if (scheduleRunMax < v) setScheduleRunMax(v) }}
-                      style={{ ...inputBase, width: '70px', textAlign: 'center', padding: '5px 8px' }}
-                    />
-                    <span style={{ fontSize: '12px', color: '#a1a1aa' }}>篇</span>
+                {categoryPlans.length > 0 ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {categoryPlans.map(p => {
+                      const cat = categories.find(c => c.id === p.categoryId)
+                      if (!cat) return null
+                      const totalW = categoryPlans.reduce((s, x) => s + Math.max(1, x.weight ?? 1), 0)
+                      const pct = Math.round(Math.max(1, p.weight ?? 1) / totalW * 100)
+                      return (
+                        <div key={p.categoryId} style={{
+                          fontSize: '12px', padding: '4px 10px', borderRadius: '99px',
+                          background: 'rgba(99,102,241,0.08)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.2)',
+                        }}>
+                          {cat.name} <span style={{ opacity: 0.7 }}>权重 {p.weight ?? 1}（{pct}%）</span>
+                        </div>
+                      )
+                    })}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '13px', color: '#3f3f46', width: '80px', flexShrink: 0 }}>最多篇数</span>
-                    <input
-                      type="number" min={scheduleRunMin} max={20} value={scheduleRunMax}
-                      onChange={e => setScheduleRunMax(Math.max(scheduleRunMin, Number(e.target.value)))}
-                      style={{ ...inputBase, width: '70px', textAlign: 'center', padding: '5px 8px' }}
-                    />
-                    <span style={{ fontSize: '12px', color: '#a1a1aa' }}>篇</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '13px', color: '#3f3f46', width: '80px', flexShrink: 0 }}>每日上限</span>
-                    <input
-                      type="number" min={1} max={100} value={scheduleDailyMax}
-                      onChange={e => setScheduleDailyMax(Number(e.target.value))}
-                      style={{ ...inputBase, width: '70px', textAlign: 'center', padding: '5px 8px' }}
-                    />
-                    <span style={{ fontSize: '12px', color: '#a1a1aa' }}>篇 / 天</span>
-                  </div>
-                </div>
-                {scheduleHours.length > 0 && scheduleRunMin > 0 && (
-                  <p style={{ fontSize: '12px', color: '#71717a', marginTop: '10px', background: '#f9f9fb', borderRadius: '7px', padding: '7px 10px' }}>
-                    预计每天 {scheduleHours.length} 次触发，每次 {scheduleRunMin === scheduleRunMax ? scheduleRunMin : `${scheduleRunMin}–${scheduleRunMax}`} 篇，
-                    最多 {Math.min(scheduleHours.length * scheduleRunMax, scheduleDailyMax)} 篇（受每日上限约束）
-                  </p>
+                ) : (
+                  <p style={{ fontSize: '12px', color: '#a1a1aa', margin: 0 }}>暂未配置分类计划，文章将不关联分类。</p>
                 )}
               </div>
 
-              {/* Category weights hint */}
-              <div style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '10px', padding: '14px 16px' }}>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: '#6366f1', marginBottom: '5px' }}>分类权重</p>
-                <p style={{ fontSize: '12px', color: '#71717a', lineHeight: 1.7, margin: 0 }}>
-                  每次触发时按权重随机选择一个分类生成文章。在「内容 Agent」标签页的分类发布计划中为每个分类设置权重（数值越大，被选中概率越高）。
-                  {categoryPlans.length > 0 ? (
-                    <span style={{ display: 'block', marginTop: '6px' }}>
-                      当前分类：{categoryPlans.map(p => {
-                        const cat = categories.find(c => c.id === p.categoryId)
-                        return cat ? `${cat.name}（权重 ${p.weight ?? 1}）` : null
-                      }).filter(Boolean).join('、')}
-                    </span>
+              {/* Schedule trigger URL */}
+              <div style={{ border: '1px solid #e4e4e7', borderRadius: '12px', overflow: 'hidden', background: '#fff' }}>
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid #f4f4f5' }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#18181b', margin: 0 }}>计划触发 URL</p>
+                  <p style={{ fontSize: '12px', color: '#71717a', marginTop: '2px' }}>
+                    用任意外部调度器（Cron、n8n、GitHub Actions…）以 GET 请求调用此 URL，系统自动执行发布计划。
+                  </p>
+                </div>
+                <div style={{ padding: '14px 16px' }}>
+                  {triggerToken ? (
+                    <>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <code style={{
+                          flex: 1, fontSize: '11.5px', color: '#3f3f46', background: '#f4f4f5',
+                          padding: '9px 12px', borderRadius: '8px', wordBreak: 'break-all', lineHeight: 1.6,
+                        }}>
+                          {buildScheduleUrl()}
+                        </code>
+                        <button
+                          onClick={() => copyText(buildScheduleUrl(), 'schedule-url')}
+                          style={{
+                            flexShrink: 0, padding: '9px 16px', fontSize: '12px', fontWeight: 500,
+                            border: '1px solid #e4e4e7', borderRadius: '8px', cursor: 'pointer',
+                            background: copied === 'schedule-url' ? 'rgba(16,185,129,0.08)' : '#fff',
+                            color: copied === 'schedule-url' ? '#059669' : '#71717a',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          {copied === 'schedule-url' ? '已复制' : '复制'}
+                        </button>
+                      </div>
+                      <p style={{ fontSize: '11px', color: '#a1a1aa', marginTop: '8px' }}>
+                        每次调用：随机 {scheduleRunMin === scheduleRunMax ? scheduleRunMin : `${scheduleRunMin}–${scheduleRunMax}`} 篇 · 每日上限 {scheduleDailyMax} 篇 · 按权重选分类
+                      </p>
+                    </>
                   ) : (
-                    <span style={{ display: 'block', marginTop: '6px', color: '#a1a1aa' }}>
-                      暂未配置分类计划，文章将不关联分类。
-                    </span>
+                    <p style={{ fontSize: '13px', color: '#a1a1aa' }}>
+                      请先在「执行面板」→「触发链接」中生成 Token，再回到此页查看计划 URL。
+                    </p>
                   )}
-                </p>
+                </div>
               </div>
             </>
           )}

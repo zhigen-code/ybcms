@@ -206,8 +206,6 @@ export interface SiteSettings {
   'ai.trigger.token': string
   // 发布计划
   'ai.schedule.enabled': boolean
-  'ai.schedule.hours': number[]
-  'ai.schedule.timezone': number
   'ai.schedule.runMin': number
   'ai.schedule.runMax': number
   'ai.schedule.dailyMax': number

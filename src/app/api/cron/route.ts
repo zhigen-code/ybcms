@@ -1,18 +1,9 @@
 /**
- * Cron trigger endpoint.
+ * Cron trigger endpoint — called by an external scheduler (Cloudflare Worker, cron job, etc.)
  *
- * Production wiring (Cloudflare Workers):
- *   Deploy a tiny Worker with [triggers] crons = ["0 * * * *"] (every hour) whose
- *   scheduled() handler does:
- *     await fetch('https://your-site.pages.dev/api/cron', {
- *       method: 'POST',
- *       headers: { Authorization: `Bearer ${env.CRON_SECRET}` },
- *       body: JSON.stringify({ agents: ['content', 'seo'] }),
- *     })
- *
- *   When ai.schedule.enabled is true, the endpoint applies a time-gate:
- *   it only runs the content agent if the current local hour matches one of
- *   the configured slots and the daily cap has not been reached.
+ * When ai.schedule.enabled is true, the content agent runs with schedule logic:
+ * daily cap check → random article count → weighted category selection.
+ * Timing is fully controlled by the external caller.
  *
  * Manual test:
  *   curl -X POST /api/cron \
@@ -32,7 +23,6 @@ const schema = z.object({
   agents: z.array(z.enum(['content', 'seo'])).default(['content', 'seo']),
 })
 
-// Weighted random pick (no replacement needed — just pick one category per run)
 function weightedPick(plans: CategoryPlan[]): CategoryPlan {
   const total = plans.reduce((s, p) => s + Math.max(1, p.weight ?? 1), 0)
   let r = Math.random() * total
@@ -43,17 +33,12 @@ function weightedPick(plans: CategoryPlan[]): CategoryPlan {
   return plans[plans.length - 1]
 }
 
-// Count content published since midnight (UTC+offset)
-async function countPublishedToday(db: D1Database, tzOffsetHours: number): Promise<number> {
-  const nowMs = Date.now()
-  const offsetMs = tzOffsetHours * 3600 * 1000
-  const localMs = nowMs + offsetMs
-  const localDate = new Date(localMs)
-  const midnightLocal = new Date(Date.UTC(localDate.getUTCFullYear(), localDate.getUTCMonth(), localDate.getUTCDate()))
-  const midnightUtc = Math.floor((midnightLocal.getTime() - offsetMs) / 1000)
+async function countPublishedToday(db: D1Database): Promise<number> {
+  const nowSec = Math.floor(Date.now() / 1000)
+  const midnightSec = nowSec - (nowSec % 86400)
   const row = await db
     .prepare("SELECT COUNT(*) as n FROM contents WHERE type='post' AND status='published' AND published_at >= ?")
-    .bind(midnightUtc)
+    .bind(midnightSec)
     .first<{ n: number }>()
   return row?.n ?? 0
 }
@@ -75,7 +60,7 @@ export async function POST(request: Request) {
   const adminUser = users.find(u => u.role === 'admin')
   const userId = adminUser?.id
 
-  // 定时发布：先将到期的 scheduled 内容切换为 published
+  // Publish any scheduled content that's due
   let scheduledResult: { published: number; ids: string[] } = { published: 0, ids: [] }
   try {
     scheduledResult = await publishScheduled(env.DB)
@@ -91,44 +76,26 @@ export async function POST(request: Request) {
       const scheduleEnabled = Boolean(settings['ai.schedule.enabled'])
 
       if (scheduleEnabled) {
-        // ── 时间门控模式 ──────────────────────────────────────────
-        const hours = (settings['ai.schedule.hours'] as number[] | undefined) ?? []
-        const tz = Number(settings['ai.schedule.timezone'] ?? 8)
         const runMin = Math.max(1, Number(settings['ai.schedule.runMin'] ?? 1))
         const runMax = Math.max(runMin, Number(settings['ai.schedule.runMax'] ?? 1))
         const dailyMax = Math.max(1, Number(settings['ai.schedule.dailyMax'] ?? 10))
         const categoryPlans = (settings['ai.content.categoryPlans'] as CategoryPlan[]) ?? []
         const siteTopics = (settings['ai.content.siteTopics'] as string) || ''
 
-        // Current local hour
-        const localHour = new Date(Date.now() + tz * 3600000).getUTCHours()
-
-        if (hours.length > 0 && !hours.includes(localHour)) {
-          results[agent] = { skipped: true, reason: `当前时间 ${localHour}:xx 不在发布时段 [${hours.join(',')}]` }
-          continue
-        }
-
-        // Daily cap check
-        const todayCount = await countPublishedToday(env.DB, tz)
+        const todayCount = await countPublishedToday(env.DB)
         if (todayCount >= dailyMax) {
           results[agent] = { skipped: true, reason: `今日已发布 ${todayCount} 篇，已达每日上限 ${dailyMax}` }
           continue
         }
 
-        // Random count, capped by remaining daily quota
         const remaining = dailyMax - todayCount
         const rawCount = runMin + Math.floor(Math.random() * (runMax - runMin + 1))
         const articleCount = Math.min(rawCount, remaining)
 
-        // Weighted category selection
         let scheduledPlan: ScheduledPlan
         if (categoryPlans.length > 0) {
           const picked = weightedPick(categoryPlans)
-          scheduledPlan = {
-            categoryId: picked.categoryId,
-            count: articleCount,
-            topicFocus: picked.topicFocus || siteTopics,
-          }
+          scheduledPlan = { categoryId: picked.categoryId, count: articleCount, topicFocus: picked.topicFocus || siteTopics }
         } else {
           scheduledPlan = { categoryId: null, count: articleCount, topicFocus: siteTopics }
         }
@@ -141,7 +108,6 @@ export async function POST(request: Request) {
           results[agent] = { success: false, error: '执行失败' }
         }
       } else {
-        // ── 普通模式（不启用计划，每次都执行） ────────────────────
         try {
           const { taskId, result } = await runAgent('content', env, userId)
           results[agent] = { taskId, ...result }
