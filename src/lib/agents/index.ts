@@ -2,14 +2,15 @@ import { createAITask, updateAITask } from '@/lib/db'
 import { generateId } from '@/lib/utils'
 import { runContentAgent } from './content-agent'
 import { runSEOAgent } from './seo-agent'
-import type { AgentResult } from './base'
+import type { AgentResult, ScheduledPlan } from './base'
 
 export type AgentType = 'content' | 'seo'
 
 export async function runAgent(
   type: AgentType,
   env: CloudflareEnv,
-  userId?: string
+  userId?: string,
+  extra?: { scheduledPlan?: ScheduledPlan }
 ): Promise<{ taskId: string; result: AgentResult }> {
   const db = env.DB
   const taskId = generateId()
@@ -19,7 +20,7 @@ export async function runAgent(
   await updateAITask(db, taskId, { status: 'running' })
 
   try {
-    const ctx = { db, env, taskId, userId }
+    const ctx = { db, env, taskId, userId, scheduledPlan: extra?.scheduledPlan }
     const result = type === 'content'
       ? await runContentAgent(ctx)
       : await runSEOAgent(ctx)

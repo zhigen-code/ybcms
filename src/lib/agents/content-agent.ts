@@ -205,7 +205,7 @@ async function runPlan(
   return { generated, errors, topicsFound: topics.length }
 }
 
-export async function runContentAgent({ db, env, taskId, userId }: AgentRunOptions): Promise<AgentResult> {
+export async function runContentAgent({ db, env, taskId, userId, scheduledPlan }: AgentRunOptions): Promise<AgentResult> {
   void taskId
 
   const settings = await getSiteSettings(db)
@@ -242,8 +242,20 @@ export async function runContentAgent({ db, env, taskId, userId }: AgentRunOptio
   const allGenerated: { id: string; title: string; slug: string; status: string; coverGenerated: boolean; categoryId: string | null }[] = []
   const allErrors: { topic: string; step: string; error: string }[] = []
 
-  if (categoryPlans.length > 0) {
-    // 按分类计划逐个执行
+  if (scheduledPlan) {
+    // 定时发布模式：使用传入的单次计划（已由 cron 路由决定分类和篇数）
+    const { generated, errors, topicsFound } = await runPlan(db, env, {
+      categoryId: scheduledPlan.categoryId,
+      count: Math.max(1, scheduledPlan.count),
+      topicFocus: scheduledPlan.topicFocus || siteTopics,
+    }, shared)
+    if (topicsFound === 0) {
+      return { success: false, summary: 'AI 未返回有效选题，请检查 Workers AI 配额或稍后重试', data: { generated: 0 } }
+    }
+    allGenerated.push(...generated)
+    allErrors.push(...errors)
+  } else if (categoryPlans.length > 0) {
+    // 手动触发：按分类计划逐个执行
     for (const plan of categoryPlans) {
       const planCount = Math.max(1, plan.count || 1)
       const { generated, errors, topicsFound } = await runPlan(db, env, {

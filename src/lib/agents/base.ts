@@ -4,9 +4,16 @@ export interface AgentResult {
   data: unknown
 }
 
+export interface ScheduledPlan {
+  categoryId: string | null
+  count: number
+  topicFocus: string
+}
+
 export interface AgentRunOptions {
   db: D1Database
   env: CloudflareEnv
   taskId: string
   userId?: string
+  scheduledPlan?: ScheduledPlan
 }

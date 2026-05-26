@@ -152,6 +152,7 @@ export interface CategoryPlan {
   categoryId: string
   count: number
   topicFocus: string
+  weight?: number
 }
 
 export interface SiteSettings {
@@ -203,6 +204,13 @@ export interface SiteSettings {
   'ai.seo.batchSize': number
   'ai.seo.priorityAI': boolean
   'ai.trigger.token': string
+  // 发布计划
+  'ai.schedule.enabled': boolean
+  'ai.schedule.hours': number[]
+  'ai.schedule.timezone': number
+  'ai.schedule.runMin': number
+  'ai.schedule.runMax': number
+  'ai.schedule.dailyMax': number
   'site.showAiBadge': boolean
   'setup.completed': boolean
   // 存储驱动
