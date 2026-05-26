@@ -106,7 +106,7 @@ ${styleMd ? `## 样式参考网站\n${styleMd.slice(0, 2000)}` : ''}
 1. 根据行业和网站类型，建议 4-8 个合适的内容分类
 2. 设计主导航（3-6 项）
 3. 生成 AI 内容配置（话题方向、写作风格）
-4. 从来源网站提取或改写 3-5 篇示例内容，每篇 300-500 字，指定所属分类
+4. 从来源网站提取或改写 3-5 篇示例内容，每篇 150-200 字，指定所属分类（内容简洁，后续 AI Agent 会补充完整）
 5. 用一段话总结方案
 
 严格按以下 JSON 结构输出，不要包含注释，不要用 markdown 代码块：
@@ -133,7 +133,7 @@ ${styleMd ? `## 样式参考网站\n${styleMd.slice(0, 2000)}` : ''}
 }
 `
 
-  const raw = await generateText(env, userPrompt, systemPrompt, 6000, DEFAULT_MODELS.content)
+  const raw = await generateText(env, userPrompt, systemPrompt, 8000, DEFAULT_MODELS.content)
 
   // Strip potential code fences
   const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
@@ -202,7 +202,8 @@ export async function executeInitPlan(
   for (const item of plan.importItems) {
     try {
       const id = generateId()
-      const slug = slugify(item.title) || id
+      const baseSlug = slugify(item.title)
+      const slug = baseSlug ? `${baseSlug}-${id.slice(-6)}` : id
       await createContent(db, {
         id,
         type: 'post',

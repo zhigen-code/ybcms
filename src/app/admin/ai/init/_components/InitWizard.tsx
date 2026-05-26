@@ -268,9 +268,14 @@ function Step4({ plan, onChange, executing, done, execResult }: {
             已创建 {execResult.categoriesCreated} 个分类，导入 {execResult.contentsImported} 篇内容
           </div>
           {execResult.errors.length > 0 && (
-            <div style={{ fontSize: 12, color: C.error, marginTop: 8 }}>
-              {execResult.errors.slice(0, 3).map((e, i) => <div key={i}>{e}</div>)}
-            </div>
+            <details style={{ marginTop: 8, textAlign: 'left' }}>
+              <summary style={{ fontSize: 12, color: C.error, cursor: 'pointer' }}>
+                {execResult.errors.length} 项出错（点击展开）
+              </summary>
+              <div style={{ fontSize: 11, color: C.error, marginTop: 6, lineHeight: 1.7, fontFamily: 'monospace' }}>
+                {execResult.errors.map((e, i) => <div key={i}>{e}</div>)}
+              </div>
+            </details>
           )}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -391,7 +396,12 @@ function Step4({ plan, onChange, executing, done, execResult }: {
 
       {/* Import items */}
       <div>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>导入内容（{plan.importItems.length} 篇）</div>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
+          导入内容（{plan.importItems.length} 篇）
+          {plan.importItems.length === 0 && (
+            <span style={{ fontSize: 12, fontWeight: 400, color: C.error, marginLeft: 8 }}>AI 未生成示例内容，初始化后可手动添加</span>
+          )}
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {plan.importItems.map((item, i) => (
             <Card key={i} style={{ padding: '12px 14px' }}>
