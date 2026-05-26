@@ -20,7 +20,7 @@ import { getSiteSettings } from '@/lib/config'
 import type { CategoryPlan } from '@/types'
 
 const schema = z.object({
-  agents: z.array(z.enum(['content', 'seo'])).default(['content', 'seo']),
+  agents: z.array(z.enum(['content', 'seo', 'review'])).default(['content', 'review']),
 })
 
 function weightedPick(plans: CategoryPlan[]): CategoryPlan {
@@ -124,6 +124,7 @@ export async function POST(request: Request) {
         console.error(`[cron] agent ${agent} failed`, err)
         results[agent] = { success: false, error: '执行失败' }
       }
+
     }
   }
 

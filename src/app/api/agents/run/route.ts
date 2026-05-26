@@ -8,7 +8,7 @@ import { z } from 'zod'
 
 
 const schema = z.object({
-  agent: z.enum(['content', 'seo']),
+  agent: z.enum(['content', 'seo', 'review']),
 })
 
 export async function POST(request: Request) {

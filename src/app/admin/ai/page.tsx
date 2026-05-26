@@ -19,7 +19,7 @@ export default async function AIPage() {
           AI 运营
         </h1>
         <p style={{ fontSize: '13px', color: '#71717a', marginTop: '4px' }}>
-          智能内容生成 · 自动 SEO 优化 · 提示词定制 · 模型配置
+          内容 Agent · 审核 Agent · 发布计划 · 提示词
         </p>
       </div>
 

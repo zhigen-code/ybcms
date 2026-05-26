@@ -2,9 +2,10 @@ import { createAITask, updateAITask } from '@/lib/db'
 import { generateId } from '@/lib/utils'
 import { runContentAgent } from './content-agent'
 import { runSEOAgent } from './seo-agent'
+import { runReviewAgent } from './review-agent'
 import type { AgentResult, ScheduledPlan } from './base'
 
-export type AgentType = 'content' | 'seo'
+export type AgentType = 'content' | 'seo' | 'review'
 
 export async function runAgent(
   type: AgentType,
@@ -21,9 +22,14 @@ export async function runAgent(
 
   try {
     const ctx = { db, env, taskId, userId, scheduledPlan: extra?.scheduledPlan }
-    const result = type === 'content'
-      ? await runContentAgent(ctx)
-      : await runSEOAgent(ctx)
+    let result: AgentResult
+    if (type === 'content') {
+      result = await runContentAgent(ctx)
+    } else if (type === 'review') {
+      result = await runReviewAgent(ctx)
+    } else {
+      result = await runSEOAgent(ctx)
+    }
 
     await updateAITask(db, taskId, {
       status: result.success ? 'done' : 'failed',

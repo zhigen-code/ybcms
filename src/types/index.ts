@@ -1,6 +1,6 @@
 export type ContentStatus = 'draft' | 'published' | 'scheduled'
 export type UserRole = 'admin' | 'editor' | 'author'
-export type AITaskType = 'content' | 'seo' | 'design' | 'analytics' | 'setup'
+export type AITaskType = 'content' | 'seo' | 'review' | 'design' | 'analytics' | 'setup'
 export type AITaskStatus = 'pending' | 'running' | 'done' | 'failed'
 
 export interface ContentType {
@@ -183,9 +183,7 @@ export interface SiteSettings {
   'ai.content.count': number
   'ai.content.autoPublish': boolean
   'ai.content.length': 'short' | 'medium' | 'long'
-  'ai.content.defaultCategoryIds': string[]
   'ai.content.categoryPlans': CategoryPlan[]
-  'ai.content.generateCover': boolean
   'ai.content.imageSource': 'ai' | 'unsplash' | 'none'
   'ai.content.bodyImageSource': 'none' | 'unsplash' | 'ai'
   'ai.content.unsplashKey': string
@@ -200,9 +198,15 @@ export interface SiteSettings {
   'ai.topic.prompt': string
   'ai.content.systemPrompt': string
   'ai.content.userPrompt': string
-  // SEO Agent
+  // SEO Agent（保留旧键兼容历史数据）
   'ai.seo.batchSize': number
   'ai.seo.priorityAI': boolean
+  // 审核 Agent
+  'ai.review.batchSize': number
+  'ai.review.priorityUnreviewed': boolean
+  'ai.review.fixMeta': boolean
+  'ai.review.fixExcerpt': boolean
+  'ai.review.model': string
   'ai.trigger.token': string
   // 发布计划
   'ai.schedule.enabled': boolean

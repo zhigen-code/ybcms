@@ -37,8 +37,8 @@ export async function GET(request: Request) {
   if (!token) {
     return Response.json({ error: '缺少 token 参数' }, { status: 400 })
   }
-  if (!['content', 'seo'].includes(agent)) {
-    return Response.json({ error: 'agent 参数无效，可选 content / seo' }, { status: 400 })
+  if (!['content', 'seo', 'review'].includes(agent)) {
+    return Response.json({ error: 'agent 参数无效，可选 content / review / seo' }, { status: 400 })
   }
 
   const settings = await getSiteSettings(env.DB)
