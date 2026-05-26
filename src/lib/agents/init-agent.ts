@@ -6,13 +6,30 @@ import type { InitBasicInfo, InitPlan } from '@/types'
 
 const JINA_BASE = 'https://r.jina.ai'
 
-async function fetchWithJina(url: string): Promise<string> {
-  const resp = await fetch(`${JINA_BASE}/${url}`, {
-    headers: { Accept: 'text/plain', 'X-No-Cache': 'true' },
-    signal: AbortSignal.timeout(30000),
-  })
-  if (!resp.ok) throw new Error(`Jina fetch failed for ${url}: ${resp.status}`)
-  return resp.text()
+async function fetchWithJina(url: string, retries = 3): Promise<string> {
+  let lastErr: Error | null = null
+  for (let i = 0; i < retries; i++) {
+    if (i > 0) await new Promise(r => setTimeout(r, 2000 * i))
+    try {
+      const resp = await fetch(`${JINA_BASE}/${url}`, {
+        headers: { Accept: 'text/plain' },
+        signal: AbortSignal.timeout(40000),
+      })
+      if (resp.status === 429) {
+        // Respect Retry-After if present, otherwise back off
+        const retryAfter = Number(resp.headers.get('Retry-After') ?? 0)
+        const wait = retryAfter > 0 ? retryAfter * 1000 : 3000 * (i + 1)
+        await new Promise(r => setTimeout(r, wait))
+        lastErr = new Error(`Jina fetch failed for ${url}: 429`)
+        continue
+      }
+      if (!resp.ok) throw new Error(`Jina fetch failed for ${url}: ${resp.status}`)
+      return resp.text()
+    } catch (e) {
+      lastErr = e as Error
+    }
+  }
+  throw lastErr ?? new Error(`Jina fetch failed for ${url}`)
 }
 
 function extractUrls(markdown: string, base: string): string[] {
@@ -39,23 +56,23 @@ export async function analyzeWebsite(
   // 1. Crawl homepage
   const homepageMd = await fetchWithJina(contentSourceUrl)
 
-  // 2. Extract sub-page URLs from homepage, crawl up to 4
+  // 2. Extract sub-page URLs from homepage, crawl up to 3 sequentially to avoid rate limits
   const subUrls = extractUrls(homepageMd, contentSourceUrl)
   const subPageContents: string[] = []
-  await Promise.all(
-    subUrls.slice(0, 4).map(async u => {
-      try {
-        const md = await fetchWithJina(u)
-        subPageContents.push(`=== ${u} ===\n${md.slice(0, 3000)}`)
-      } catch {
-        // ignore individual failures
-      }
-    })
-  )
+  for (const u of subUrls.slice(0, 3)) {
+    await new Promise(r => setTimeout(r, 1500))
+    try {
+      const md = await fetchWithJina(u)
+      subPageContents.push(`=== ${u} ===\n${md.slice(0, 3000)}`)
+    } catch {
+      // ignore individual failures
+    }
+  }
 
   // 3. (Optional) crawl style reference
   let styleMd = ''
   if (styleReferenceUrl) {
+    await new Promise(r => setTimeout(r, 1500))
     try {
       styleMd = await fetchWithJina(styleReferenceUrl)
     } catch {
