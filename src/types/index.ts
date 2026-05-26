@@ -263,3 +263,21 @@ export interface Link {
   status: 'active' | 'hidden'
   created_at: number
 }
+
+export interface InitBasicInfo {
+  siteName: string
+  language: 'zh' | 'en' | 'bilingual'
+  siteType: 'showcase' | 'marketing' | 'news' | 'ecommerce'
+  industry: string
+  targetAudience: string
+  brandColor?: string
+}
+
+export interface InitPlan {
+  siteSettings: { name: string; description: string; url?: string }
+  categories: { name: string; slug: string; description?: string }[]
+  navigation: { label: string; url: string }[]
+  aiConfig: { siteTopics: string; targetAudience: string; writingStyle: string }
+  importItems: { title: string; content: string; excerpt: string; categorySlug?: string }[]
+  summary: string
+}
