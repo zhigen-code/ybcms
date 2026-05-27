@@ -215,6 +215,10 @@ export interface SiteSettings {
   'ai.schedule.dailyMax': number
   'site.showAiBadge': boolean
   'setup.completed': boolean
+  'site.contact.phone': string
+  'site.contact.address': string
+  'site.contact.email': string
+  'site.contact.hours': string
   // 存储驱动
   'storage.driver': 'r2' | 's3'
   'storage.s3.endpoint': string
@@ -273,8 +277,39 @@ export interface InitBasicInfo {
   brandColor?: string
 }
 
+export interface InitContactInfo {
+  phone?: string
+  address?: string
+  email?: string
+  hours?: string
+}
+
+export interface InitTeamMember {
+  name: string
+  title: string
+  bio: string
+  imageUrl?: string
+}
+
+export interface InitService {
+  name: string
+  slug: string
+  description: string
+}
+
+export interface InitCase {
+  title: string
+  description: string
+  outcome?: string
+}
+
 export interface InitPlan {
   siteSettings: { name: string; description: string; url?: string }
+  contactInfo: InitContactInfo
+  aboutPage?: { title: string; content: string }
+  teamMembers: InitTeamMember[]
+  services: InitService[]
+  cases: InitCase[]
   categories: { name: string; slug: string; description?: string }[]
   navigation: { label: string; url: string }[]
   aiConfig: { siteTopics: string; targetAudience: string; writingStyle: string }
