@@ -509,6 +509,9 @@ export default function InitWizard() {
               {analyzeStatus === 'running' ? '分析中...' : analyzeStatus === 'error' ? '重新分析' : '开始分析'}
             </Btn>
           )}
+          {step === 2 && analyzeStatus === 'done' && (
+            <Btn variant="outline" onClick={() => { setAnalyzeStatus('idle'); setAnalyzeLog([]); setPlan(null) }} disabled={analyzeStatus === 'running'}>重新抓取</Btn>
+          )}
           {step < 3 && !(step === 2 && analyzeStatus !== 'done') && (
             <Btn onClick={() => setStep(s => s + 1)} disabled={!canProceed()}>下一步</Btn>
           )}
