@@ -14,7 +14,7 @@ const ROLE_LABEL: Record<string, string> = {
 }
 
 export default function AuthorArchive({ author, posts, pagination, settings }: Props) {
-  const showAiBadge = settings ? settings['site.showAiBadge'] !== false : false
+  const showAiBadge = settings ? settings['site.showAiBadge'] === true : false
   const initials = author.name.slice(0, 2).toUpperCase()
 
   return (

@@ -95,7 +95,7 @@ function HeroCarousel({ post }: { post: Content }) {
 export default function DefaultHome({ posts, settings, categories = [], categoryMap = {}, pagination, tags = [] }: Props) {
   const siteName = settings['site.name'] as string
   const siteDesc = settings['site.description'] as string | null
-  const showAiBadge = settings['site.showAiBadge'] !== false
+  const showAiBadge = settings['site.showAiBadge'] === true
 
   const featured = posts[0]
   const secondary = posts.slice(1, 3)

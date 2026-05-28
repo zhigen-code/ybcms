@@ -40,7 +40,7 @@ function ProseWithForms({ html, forms, style }: { html: string; forms: Form[]; s
 }
 
 export default function DefaultPost({ post, settings, related = [], embeddedForms = [] }: Props) {
-  const showAiBadge = settings['site.showAiBadge'] !== false
+  const showAiBadge = settings['site.showAiBadge'] === true
   const readTime = post.content ? estimateReadingTime(post.content) : 0
   const date = post.published_at ? formatDate(post.published_at) : null
 
