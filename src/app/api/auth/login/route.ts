@@ -1,5 +1,5 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare'
-import { getUserByEmail, createUser, setSetting } from '@/lib/db'
+import { getUserByEmail, createUser, setSetting, updateUserPassword } from '@/lib/db'
 import { signToken, verifyPassword, hashPassword } from '@/lib/auth'
 import { generateId } from '@/lib/utils'
 import { isSetupCompleted } from '@/lib/config'
@@ -46,6 +46,12 @@ export async function POST(request: Request) {
   const valid = await verifyPassword(password, user.password_hash)
   if (!valid) {
     return Response.json({ error: '密码错误' }, { status: 401 })
+  }
+
+  // Auto-upgrade legacy SHA-256 hashes to PBKDF2 on successful login
+  if (!user.password_hash.startsWith('pbkdf2:')) {
+    const upgraded = await hashPassword(password)
+    await updateUserPassword(db, user.id, upgraded)
   }
 
   // 更新最后登录时间

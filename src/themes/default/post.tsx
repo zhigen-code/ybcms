@@ -43,6 +43,7 @@ export default function DefaultPost({ post, settings, related = [], embeddedForm
   const showAiBadge = settings['site.showAiBadge'] === true
   const readTime = post.content ? estimateReadingTime(post.content) : 0
   const date = post.published_at ? formatDate(post.published_at) : null
+  const canonicalUrl = `${(settings['site.url'] ?? '').replace(/\/$/, '')}/posts/${post.slug}`
 
   useEffect(() => {
     const link = document.createElement('link')
@@ -188,9 +189,9 @@ export default function DefaultPost({ post, settings, related = [], embeddedForm
             {/* Share */}
             <div style={{ marginTop: '2.5rem', paddingTop: '1.75rem', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginRight: '0.25rem' }}>分享</span>
-              <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`} target="_blank" rel="noopener noreferrer" className="share-btn">X / Twitter</a>
-              <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`} target="_blank" rel="noopener noreferrer" className="share-btn">Facebook</a>
-              <button onClick={() => { navigator.clipboard.writeText(window.location.href).catch(() => {}) }} className="share-btn">复制链接</button>
+              <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(canonicalUrl)}`} target="_blank" rel="noopener noreferrer" className="share-btn">X / Twitter</a>
+              <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(canonicalUrl)}`} target="_blank" rel="noopener noreferrer" className="share-btn">Facebook</a>
+              <button onClick={() => { navigator.clipboard.writeText(canonicalUrl).catch(() => {}) }} className="share-btn">复制链接</button>
             </div>
 
             {/* Related posts */}

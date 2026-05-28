@@ -1,12 +1,11 @@
 import { SignJWT, jwtVerify } from 'jose'
-import { cookies } from 'next/headers'
-import type { User } from '@/types'
 
 const COOKIE_NAME = 'cms_token'
 const TOKEN_EXPIRY = '7d'
 
 function getSecret(env: CloudflareEnv): Uint8Array {
-  return new TextEncoder().encode(env.JWT_SECRET || 'dev-secret-change-in-production')
+  if (!env.JWT_SECRET) throw new Error('JWT_SECRET is not configured')
+  return new TextEncoder().encode(env.JWT_SECRET)
 }
 
 export async function signToken(payload: { userId: string; role: string }, env: CloudflareEnv): Promise<string> {
@@ -65,17 +64,42 @@ export function requireSuperAdmin(user: { role: string } | null): Response | nul
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(password)
-  const hash = await crypto.subtle.digest('SHA-256', data)
-  return Array.from(new Uint8Array(hash))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('')
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(password), { name: 'PBKDF2' }, false, ['deriveBits']
+  )
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, keyMaterial, 256
+  )
+  const hashHex = Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('')
+  return `pbkdf2:${saltHex}:${hashHex}`
 }
 
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const inputHash = await hashPassword(password)
-  return inputHash === hash
+async function verifyPbkdf2(password: string, saltHex: string, hashHex: string): Promise<boolean> {
+  const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map(b => parseInt(b, 16)))
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(password), { name: 'PBKDF2' }, false, ['deriveBits']
+  )
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, keyMaterial, 256
+  )
+  const inputHex = Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('')
+  return inputHex === hashHex
+}
+
+async function legacySha256(password: string): Promise<string> {
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password))
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+export async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  if (stored.startsWith('pbkdf2:')) {
+    const [, saltHex, hashHex] = stored.split(':')
+    return verifyPbkdf2(password, saltHex, hashHex)
+  }
+  // Legacy: unsalted SHA-256 (64 hex chars) — still valid for existing accounts
+  return (await legacySha256(password)) === stored
 }
 
 export async function hashApiKey(key: string): Promise<string> {
