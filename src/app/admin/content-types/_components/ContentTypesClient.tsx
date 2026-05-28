@@ -94,6 +94,7 @@ export default function ContentTypesClient({ initialTypes }: { initialTypes: Con
   const [types, setTypes] = useState(initialTypes)
   const [modal, setModal] = useState<{ mode: 'create' } | { mode: 'edit'; item: ContentType } | null>(null)
   const [delId, setDelId] = useState<string | null>(null)
+  const [delError, setDelError] = useState('')
   const [form, setForm] = useState<FormState>(defaultForm())
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
@@ -151,7 +152,13 @@ export default function ContentTypesClient({ initialTypes }: { initialTypes: Con
   }
 
   async function handleDelete(id: string) {
-    await fetch(`/api/content-types/${id}`, { method: 'DELETE' })
+    setDelError('')
+    const res = await fetch(`/api/content-types/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { error?: string }
+      setDelError(body.error || '删除失败')
+      return
+    }
     setTypes(prev => prev.filter(t => t.id !== id))
     setDelId(null)
   }
@@ -272,12 +279,13 @@ export default function ContentTypesClient({ initialTypes }: { initialTypes: Con
 
       {delId && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-          onClick={e => { if (e.target === e.currentTarget) setDelId(null) }}>
+          onClick={e => { if (e.target === e.currentTarget) { setDelId(null); setDelError('') } }}>
           <div style={{ background: '#fff', borderRadius: '14px', padding: '24px', width: '100%', maxWidth: '360px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
             <h2 style={{ fontSize: '15px', fontWeight: 600, color: '#18181b', margin: '0 0 8px' }}>删除内容类型</h2>
             <p style={{ fontSize: '13px', color: '#71717a', margin: '0 0 20px' }}>删除后该类型下的所有内容将失去关联，此操作不可恢复。</p>
+            {delError && <p style={{ fontSize: '12px', color: '#dc2626', margin: '-12px 0 16px', padding: '8px 10px', background: '#fef2f2', borderRadius: '6px' }}>{delError}</p>}
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button onClick={() => setDelId(null)} style={{ padding: '7px 16px', borderRadius: '7px', border: '1px solid #e4e4e7', background: '#fff', fontSize: '13px', cursor: 'pointer', color: '#374151' }}>取消</button>
+              <button onClick={() => { setDelId(null); setDelError('') }} style={{ padding: '7px 16px', borderRadius: '7px', border: '1px solid #e4e4e7', background: '#fff', fontSize: '13px', cursor: 'pointer', color: '#374151' }}>取消</button>
               <button onClick={() => handleDelete(delId)} style={{ padding: '7px 16px', borderRadius: '7px', border: 'none', background: '#ef4444', color: '#fff', fontSize: '13px', cursor: 'pointer' }}>删除</button>
             </div>
           </div>

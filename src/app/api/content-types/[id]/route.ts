@@ -26,6 +26,12 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   if (authError) return authError
 
   const { id } = await params
+
+  const count = await env.DB.prepare('SELECT COUNT(*) as n FROM contents WHERE type = ?').bind(id).first<{ n: number }>()
+  if (count && count.n > 0) {
+    return Response.json({ error: `该类型下有 ${count.n} 篇内容，请先删除或迁移后再删除此类型` }, { status: 409 })
+  }
+
   await deleteContentType(env.DB, id)
   return Response.json({ ok: true })
 }
