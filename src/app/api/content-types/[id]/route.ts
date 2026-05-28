@@ -27,9 +27,15 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
   const { id } = await params
 
-  const count = await env.DB.prepare('SELECT COUNT(*) as n FROM contents WHERE type = ?').bind(id).first<{ n: number }>()
-  if (count && count.n > 0) {
-    return Response.json({ error: `该类型下有 ${count.n} 篇内容，请先删除或迁移后再删除此类型` }, { status: 409 })
+  const [contentCount, categoryCount] = await Promise.all([
+    env.DB.prepare('SELECT COUNT(*) as n FROM contents WHERE type = ?').bind(id).first<{ n: number }>(),
+    env.DB.prepare('SELECT COUNT(*) as n FROM categories WHERE content_type = ?').bind(id).first<{ n: number }>(),
+  ])
+  if (contentCount && contentCount.n > 0) {
+    return Response.json({ error: `该类型下有 ${contentCount.n} 篇内容，请先删除后再删除此类型` }, { status: 409 })
+  }
+  if (categoryCount && categoryCount.n > 0) {
+    return Response.json({ error: `该类型下有 ${categoryCount.n} 个分类，请先删除后再删除此类型` }, { status: 409 })
   }
 
   await deleteContentType(env.DB, id)
