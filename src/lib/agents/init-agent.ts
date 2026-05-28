@@ -1,5 +1,5 @@
 import { generateText, DEFAULT_MODELS } from '@/lib/ai'
-import { createCategory, createContent, setContentCategories, setSetting } from '@/lib/db'
+import { createCategory, createContent, getCategoryBySlug, setContentCategories, setSetting } from '@/lib/db'
 import { updateSiteSettings } from '@/lib/config'
 import { generateId, slugify } from '@/lib/utils'
 import type { InitBasicInfo, InitPlan } from '@/types'
@@ -418,6 +418,8 @@ async function ensureCategory(
   slug: string,
   description?: string
 ): Promise<string> {
+  const existing = await getCategoryBySlug(db, 'post', slug)
+  if (existing) return existing.id
   const id = generateId()
   await createCategory(db, { id, content_type: 'post', name, slug, description: description ?? null })
   return id

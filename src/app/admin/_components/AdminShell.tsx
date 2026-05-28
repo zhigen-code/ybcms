@@ -8,7 +8,7 @@ import {
   HomeIcon, FileTextIcon, FilesIcon, ImageIcon, BotIcon,
   PaletteIcon, SettingsIcon, ExternalLinkIcon, LinkIcon,
   MenuIcon, XIcon, UsersIcon, UserIcon, KeyIcon, LogOutIcon,
-  FolderIcon, TagIcon, ClipboardIcon, LayersIcon, SparklesIcon,
+  FolderIcon, TagIcon, ClipboardIcon, LayersIcon,
 } from '@/components/icons'
 import { color, fontSize, radius, shadow, transition } from '@/app/admin/_lib/design'
 import type { CustomTypeNavItem } from '@/app/admin/layout'
@@ -33,7 +33,6 @@ function makeMonogramIcon(icon: string): React.FC<{ size?: number }> {
 const NAV: NavEntry[] = [
   { href: '/admin', label: '概览', icon: HomeIcon, exact: true },
   { href: '/admin/ai', label: 'AI 运营', icon: BotIcon },
-  { href: '/admin/ai/init', label: '网站初始化', icon: SparklesIcon },
   {
     group: '内容',
     items: [

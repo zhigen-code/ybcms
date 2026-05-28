@@ -10,3 +10,4 @@ dist/
 .open-next/
 tsconfig.tsbuildinfo
 wrangler.local.toml
+deploy.sh
