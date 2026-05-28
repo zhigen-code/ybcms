@@ -220,11 +220,12 @@ export interface SiteSettings {
   'site.contact.email': string
   'site.contact.hours': string
   // 存储驱动
-  'storage.driver': 'r2' | 's3'
+  'storage.driver': 'r2' | 's3' | 'hub'
   'storage.s3.endpoint': string
   'storage.s3.bucket': string
   'storage.s3.region': string
   'storage.s3.public_url': string
+  'storage.hub.token': string
 }
 
 export interface NavItem {
