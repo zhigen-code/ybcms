@@ -11,7 +11,7 @@ interface Props {
   showAiBadge?: boolean
 }
 
-export default function PostCard({ post, featured = false, category, showAiBadge = true }: Props) {
+export default function PostCard({ post, featured = false, category, showAiBadge = false }: Props) {
   const href = post.type === 'page' ? `/${post.slug}` : `/post/${post.slug}`
   const readTime = post.content ? estimateReadingTime(post.content) : 0
   const date = post.published_at ? formatDate(post.published_at) : formatDate(post.created_at)
