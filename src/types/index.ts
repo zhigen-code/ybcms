@@ -220,7 +220,7 @@ export interface SiteSettings {
   'site.contact.email': string
   'site.contact.hours': string
   // 存储驱动
-  'storage.driver': 'r2' | 's3' | 'hub'
+  'storage.driver': 'r2' | 's3' | 'hub' | 'unconfigured'
   'storage.s3.endpoint': string
   'storage.s3.bucket': string
   'storage.s3.region': string

@@ -1,7 +1,8 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { getMediaList, createMedia, updateMedia } from '@/lib/db'
 import { getCurrentUser, requireAdmin } from '@/lib/auth'
-import { getStorageDriver, generateMediaKey, isAllowedMimeType } from '@/lib/storage'
+import { getStorageDriver, checkStorageReady, generateMediaKey, isAllowedMimeType } from '@/lib/storage'
+import { getSiteSettings } from '@/lib/config'
 import { generateId } from '@/lib/utils'
 import { generateImageAlt } from '@/lib/ai'
 
@@ -19,6 +20,12 @@ export async function POST(request: Request) {
   const user = await getCurrentUser(request, env)
   const authError = requireAdmin(user)
   if (authError) return authError
+
+  const settings = await getSiteSettings(env.DB)
+  const storageStatus = checkStorageReady(env, settings)
+  if (!storageStatus.ready) {
+    return Response.json({ error: storageStatus.reason || '存储未配置' }, { status: 503 })
+  }
 
   const formData = await request.formData()
   const file = formData.get('file') as File | null

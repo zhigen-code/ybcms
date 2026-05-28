@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import type { Media } from '@/types'
 import { UploadIcon, CopyIcon, ExternalLinkIcon, TrashIcon, XIcon } from '@/components/icons'
 
-interface Props { initialItems: Media[] }
+interface Props { initialItems: Media[]; storageReady?: boolean }
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return bytes + ' B'
@@ -22,7 +22,7 @@ function CheckIcon() {
   )
 }
 
-export default function MediaLibraryClient({ initialItems }: Props) {
+export default function MediaLibraryClient({ initialItems, storageReady = true }: Props) {
   const [items, setItems] = useState(initialItems)
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
@@ -143,27 +143,29 @@ export default function MediaLibraryClient({ initialItems }: Props) {
 
         {/* Upload zone */}
         <div
-          onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+          onDragOver={e => { if (!storageReady) return; e.preventDefault(); setDragOver(true) }}
           onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
-          onClick={() => inputRef.current?.click()}
+          onDrop={storageReady ? handleDrop : undefined}
+          onClick={() => storageReady && inputRef.current?.click()}
           style={{
-            border: `2px dashed ${dragOver ? '#2563eb' : '#e4e4e7'}`,
+            border: `2px dashed ${!storageReady ? '#f87171' : dragOver ? '#2563eb' : '#e4e4e7'}`,
             borderRadius: '12px', padding: '2rem',
-            textAlign: 'center', cursor: 'pointer',
-            background: dragOver ? 'rgba(37,99,235,0.05)' : '#fff',
+            textAlign: 'center', cursor: storageReady ? 'pointer' : 'not-allowed',
+            background: !storageReady ? 'rgba(239,68,68,0.03)' : dragOver ? 'rgba(37,99,235,0.05)' : '#fff',
             transition: 'all 0.15s', marginBottom: '1.25rem',
           }}
         >
           <input ref={inputRef} type="file" multiple accept="image/*,video/mp4,.pdf" style={{ display: 'none' }}
-            onChange={e => handleFiles(e.target.files)} />
-          <div style={{ color: uploading ? '#2563eb' : '#71717a', marginBottom: '0.625rem', lineHeight: 0, display: 'inline-block' }}>
+            onChange={e => storageReady && handleFiles(e.target.files)} disabled={!storageReady} />
+          <div style={{ color: !storageReady ? '#ef4444' : uploading ? '#2563eb' : '#71717a', marginBottom: '0.625rem', lineHeight: 0, display: 'inline-block' }}>
             <UploadIcon size={28} />
           </div>
           <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#18181b', marginBottom: '0.25rem' }}>
-            {uploading ? '上传中…' : '点击或拖拽文件到这里'}
+            {!storageReady ? '上传已禁用' : uploading ? '上传中…' : '点击或拖拽文件到这里'}
           </p>
-          <p style={{ fontSize: '0.75rem', color: '#71717a' }}>支持图片、视频、PDF，单文件最大 20MB</p>
+          <p style={{ fontSize: '0.75rem', color: !storageReady ? '#ef4444' : '#71717a' }}>
+            {!storageReady ? '请先配置存储驱动后再上传文件' : '支持图片、视频、PDF，单文件最大 20MB'}
+          </p>
         </div>
 
         {/* Toolbar row */}

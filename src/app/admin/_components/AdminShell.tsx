@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -12,6 +12,9 @@ import {
 } from '@/components/icons'
 import { color, fontSize, radius, shadow, transition } from '@/app/admin/_lib/design'
 import type { CustomTypeNavItem } from '@/app/admin/layout'
+
+const StorageCtx = createContext(true)
+export function useStorageReady() { return useContext(StorageCtx) }
 
 type NavItem  = { href: string; label: string; icon: React.FC<{ size?: number }>; exact?: boolean }
 type NavGroup = { group: string; items: NavItem[] }
@@ -226,7 +229,12 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
   )
 }
 
-export default function AdminShell({ children, customTypes = [] }: { children: React.ReactNode; customTypes?: CustomTypeNavItem[] }) {
+export default function AdminShell({ children, customTypes = [], storageReady = true, storageWarning = '' }: {
+  children: React.ReactNode
+  customTypes?: CustomTypeNavItem[]
+  storageReady?: boolean
+  storageWarning?: string
+}) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
@@ -392,8 +400,27 @@ export default function AdminShell({ children, customTypes = [] }: { children: R
           </div>
         </header>
 
+        {!storageReady && (
+          <div style={{
+            background: '#fef3c7', borderBottom: '1px solid #fde68a',
+            padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '10px',
+          }}>
+            <span style={{ fontSize: '15px' }}>⚠️</span>
+            <span style={{ fontSize: '13px', color: '#92400e', flex: 1 }}>
+              <strong>存储未配置：</strong>{storageWarning}。上传功能已禁用。
+            </span>
+            <Link href="/admin/settings" style={{
+              fontSize: '12px', fontWeight: 600, color: '#92400e',
+              border: '1px solid #f59e0b', borderRadius: '6px',
+              padding: '3px 10px', textDecoration: 'none', whiteSpace: 'nowrap',
+              background: '#fffbeb',
+            }}>去配置 →</Link>
+          </div>
+        )}
         <main style={{ flex: 1 }}>
-          {children}
+          <StorageCtx.Provider value={storageReady}>
+            {children}
+          </StorageCtx.Provider>
         </main>
       </div>
     </div>

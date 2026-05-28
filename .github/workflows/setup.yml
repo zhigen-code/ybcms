@@ -57,9 +57,24 @@ jobs:
 
       - name: Create R2 bucket
         run: |
-          npx wrangler r2 bucket create "$BUCKET_NAME" \
-            && echo "R2 bucket created: $BUCKET_NAME" \
-            || echo "R2 bucket may already exist, continuing..."
+          R2_READY=false
+
+          # Try to create
+          if npx wrangler r2 bucket create "$BUCKET_NAME" 2>&1; then
+            R2_READY=true
+            echo "✅ R2 bucket created: $BUCKET_NAME"
+          else
+            # May already exist — verify via list
+            R2_LIST=$(npx wrangler r2 bucket list --json 2>/dev/null || echo '[]')
+            if echo "$R2_LIST" | jq -r '.[].name' 2>/dev/null | grep -qx "$BUCKET_NAME"; then
+              R2_READY=true
+              echo "✅ R2 bucket already exists: $BUCKET_NAME"
+            else
+              echo "⚠️ R2 bucket creation failed — storage will be set to unconfigured"
+            fi
+          fi
+
+          echo "R2_READY=$R2_READY" >> $GITHUB_ENV
 
       - name: Patch wrangler.toml
         run: |
@@ -87,6 +102,16 @@ jobs:
               echo "→ Already applied, skipping"
             fi
           done
+
+      - name: Configure storage driver
+        run: |
+          if [ "$R2_READY" = "true" ]; then
+            echo "✅ Storage: R2 ready, keeping default"
+          else
+            npx wrangler d1 execute "$DB_NAME" --remote --command \
+              "INSERT OR REPLACE INTO settings (key, value) VALUES ('storage.driver', '\"unconfigured\"')"
+            echo "⚠️ Storage set to unconfigured — configure via admin settings after deploy"
+          fi
 
       - name: Create Cloudflare Pages project
         run: |
