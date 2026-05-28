@@ -14,9 +14,9 @@ export async function POST(request: Request) {
   if (!prompt?.trim()) return Response.json({ error: '缺少提示词' }, { status: 400 })
 
   const buffer = await generateImage(env, prompt)
-  const key = `ai-images/${new Date().toISOString().slice(0, 7)}/${generateId()}.jpg`
+  const suggestedKey = `ai-images/${new Date().toISOString().slice(0, 7)}/${generateId()}.jpg`
   const storage = await getStorageDriver(env)
-  const url = await storage.upload(key, buffer as ArrayBuffer, 'image/jpeg')
+  const { url } = await storage.upload(suggestedKey, buffer as ArrayBuffer, 'image/jpeg')
 
   return Response.json({ url })
 }

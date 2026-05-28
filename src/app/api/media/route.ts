@@ -26,10 +26,10 @@ export async function POST(request: Request) {
   if (!isAllowedMimeType(file.type)) return Response.json({ error: '不支持的文件类型' }, { status: 400 })
   if (file.size > 20 * 1024 * 1024) return Response.json({ error: '文件超过 20MB 限制' }, { status: 400 })
 
-  const r2Key = generateMediaKey(file.name)
+  const suggestedKey = generateMediaKey(file.name)
   const buffer = await file.arrayBuffer()
   const storage = await getStorageDriver(env)
-  const url = await storage.upload(r2Key, buffer, file.type)
+  const { url, key: r2Key } = await storage.upload(suggestedKey, buffer, file.type)
 
   const id = generateId()
   await createMedia(env.DB, {

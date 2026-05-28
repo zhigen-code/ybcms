@@ -87,7 +87,7 @@ async function signRequest(
 export class S3Driver implements StorageDriver {
   constructor(private cfg: S3Config) {}
 
-  async upload(key: string, file: ArrayBuffer, contentType: string): Promise<string> {
+  async upload(key: string, file: ArrayBuffer, contentType: string): Promise<{ url: string; key: string }> {
     const url = new URL(`${this.cfg.endpoint.replace(/\/$/, '')}/${this.cfg.bucket}/${key}`)
     const headers = await signRequest(
       'PUT', url,
@@ -97,7 +97,7 @@ export class S3Driver implements StorageDriver {
     )
     const res = await fetch(url, { method: 'PUT', headers, body: file })
     if (!res.ok) throw new Error(`S3 upload failed: ${res.status} ${await res.text()}`)
-    return `${this.cfg.publicUrl.replace(/\/$/, '')}/${key}`
+    return { url: `${this.cfg.publicUrl.replace(/\/$/, '')}/${key}`, key }
   }
 
   async delete(key: string): Promise<void> {

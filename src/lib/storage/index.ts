@@ -1,15 +1,25 @@
 import { getSiteSettings } from '@/lib/config'
 import { R2Driver } from './r2'
 import { S3Driver } from './s3'
+import { HubDriver } from './hub'
 
 export interface StorageDriver {
-  upload(key: string, file: ArrayBuffer, contentType: string): Promise<string>
+  upload(key: string, file: ArrayBuffer, contentType: string): Promise<{ url: string; key: string }>
   delete(key: string): Promise<void>
 }
 
 export async function getStorageDriver(env: CloudflareEnv): Promise<StorageDriver> {
   const settings = await getSiteSettings(env.DB)
   const driver = (settings['storage.driver'] as string) || 'r2'
+
+  if (driver === 'hub') {
+    const token = (settings['storage.hub.token'] as string) || ''
+    if (!token) {
+      console.error('[storage] Hub driver selected but token not set, falling back to R2')
+      return new R2Driver(env)
+    }
+    return new HubDriver(token)
+  }
 
   if (driver === 's3') {
     const accessKeyId     = (env as unknown as Record<string, string>).S3_ACCESS_KEY_ID     || ''

@@ -363,9 +363,22 @@ export default function SettingsClient({ initialSettings }: Props) {
                 <select value={val('storage.driver') || 'r2'} onChange={e => update('storage.driver', e.target.value)}
                   style={{ ...field, cursor: 'pointer' }}>
                   <option value="r2">Cloudflare R2（默认）</option>
+                  <option value="hub">Hub 图床（hub.ie8.net）</option>
                   <option value="s3">S3 兼容存储（B2 / AWS / 自建）</option>
                 </select>
               </div>
+
+              {val('storage.driver') === 'hub' && (
+                <>
+                  <div style={{ height: '1px', background: '#f4f4f5' }} />
+                  <p style={sectionLabel}>Hub 图床配置</p>
+                  <div>
+                    <label style={labelStyle}>API Token</label>
+                    <input type="password" placeholder="输入 hub.ie8.net 的 Bearer Token" {...inp('storage.hub.token')} />
+                    <p style={hintStyle}>Token 会加密存储在数据库中，公开访问地址为 https://hub.ie8.net/f/:id</p>
+                  </div>
+                </>
+              )}
 
               {(val('storage.driver') || 'r2') === 's3' && (
                 <>
