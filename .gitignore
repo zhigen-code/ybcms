@@ -4,6 +4,7 @@ node_modules/
 .wrangler/
 .env.local
 .env*.local
+.dev.vars
 *.log
 .DS_Store
 dist/
