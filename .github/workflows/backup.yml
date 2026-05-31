@@ -1,6 +1,5 @@
 name: 💾 Backup
 
-# 每天 02:00 UTC 自动备份 main 实例
 # 手动触发时备份当前选中的分支实例
 # 需要额外配置 GitHub Secrets：
 #   R2_ACCESS_KEY_ID     - Cloudflare R2 API Token Access Key（用于媒体备份）
@@ -8,8 +7,6 @@ name: 💾 Backup
 # R2 API Token 在 Cloudflare Dashboard → R2 → Manage R2 API Tokens 中创建
 
 on:
-  schedule:
-    - cron: '0 2 * * *'
   workflow_dispatch:
 
 jobs:
